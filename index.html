@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Politics with Karthick — Tamil Nadu Updates</title>
+  <meta name="description" content="Daily Tamil Nadu politics updates — manual, free, and lightweight. Host on GitHub Pages." />
+  <style>
+    :root{--accent:#dc143c;--muted:#9aa0a6;--bg:#0f1720;--card:#0b1220;--glass:rgba(255,255,255,0.03)}
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;line-height:1.5;margin:0;background:linear-gradient(180deg,#071026 0%, #071827 100%);color:#e6eef6}
+    .wrap{max-width:960px;margin:28px auto;padding:18px}
+    header{display:flex;gap:16px;align-items:center}
+    .logo{display:flex;flex-direction:column}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:6px 0;color:var(--muted)}
+    .top-actions{margin-left:auto;display:flex;gap:8px}
+    .btn{background:var(--accent);color:#fff;padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:600;border:none;cursor:pointer}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+    .grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:18px}
+    @media(min-width:820px){.grid{grid-template-columns:2fr 340px}}
+
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+    .card h2{margin:0 0 8px 0}
+    .news-item{padding:12px;border-radius:8px;margin-bottom:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.02)}
+    .meta{font-size:12px;color:var(--muted)}
+    .small{font-size:13px;color:var(--muted)}
+
+    /* admin form */
+    label{display:block;font-size:13px;margin-top:8px;color:var(--muted)}
+    input[type=text],textarea,select{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+    textarea{min-height:100px}
+
+    footer{margin-top:20px;text-align:center;color:var(--muted);font-size:13px}
+    .subscriber-box{display:flex;gap:8px}
+    .chip{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.03);font-size:13px}
+    .muted{color:var(--muted)}
+
+    /* simple toast */
+    #toast{position:fixed;right:20px;bottom:20px;background:#111;padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);display:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">
+        <h1>🏛️ Politics with Karthick</h1>
+        <p class="lead">Tamil Nadu Legislative Assembly 2026 — manual updates. Free site for now.</p>
+      </div>
+
+      <div class="top-actions">
+        <button class="btn" id="edit-toggle">Admin: Edit</button>
+        <a class="btn ghost" id="launch-whatsapp" title="Open WhatsApp with prefilled message">WhatsApp Template</a>
+        <a class="btn ghost" href="#subscribe" id="subscribe-btn">Subscribe</a>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <h2>Latest Updates</h2>
+        <p class="small">Post updates manually using the admin box on the right. Updates are stored in your browser (local) and visible to anyone who visits this page from the same browser — to make updates public, re-upload index.html to GitHub when you change it.</p>
+        <div id="news-list" style="margin-top:12px">
+          <!-- news items inserted here -->
+        </div>
+
+        <div style="margin-top:12px">
+          <strong>How to publish for all visitors (recommended once per day)</strong>
+          <ol class="small" style="margin-top:8px;color:var(--muted)">
+            <li>Open this page locally and add updates in the admin form.</li>
+            <li>Save the file (File → Save) or copy updated HTML.</li>
+            <li>Push the updated index.html to GitHub repo (Upload file or Commit via GitHub web UI).</li>
+            <li>GitHub Pages will serve the updated site publicly.</li>
+          </ol>
+        </div>
+      </section>
+
+      <aside>
+        <div class="card">
+          <h2 id="subscribe">Subscribers</h2>
+          <p class="small">Collect leads with a Google Form (recommended) — paste your Google Form link below and add it to the site header when ready.</p>
+          <label>Google Form link (paste here)</label>
+          <input id="google-form-link" placeholder="https://forms.gle/xxxxx" />
+          <div style="margin-top:10px;display:flex;gap:8px">
+            <button class="btn" id="save-form">Save Link</button>
+            <button class="btn ghost" id="open-form">Open Form</button>
+          </div>
+
+          <hr style="margin:14px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)" />
+
+          <h3 style="margin:0">Quick WhatsApp Broadcast</h3>
+          <p class="small">Use the template below. Click to open WhatsApp with the message prefilled — you must send manually.</p>
+          <label>Broadcast message template</label>
+          <textarea id="wa-template">Politics with Karthick — Today’s update: [TYPE UPDATE HERE]\nRead full: [SITE_LINK]\nReply STOP to unsubscribe.</textarea>
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button class="btn" id="open-wa">Open WhatsApp</button>
+            <button class="btn ghost" id="copy-wa">Copy message</button>
+          </div>
+
+          <hr style="margin:14px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)" />
+
+          <h3 style="margin:0">Admin: Add Update (local only)</h3>
+          <label>Title</label>
+          <input id="news-title" placeholder="Short headline — e.g. DMK announces rally" />
+          <label>Source / Short note</label>
+          <input id="news-source" placeholder="Dinamalar / Reporter / link" />
+          <label>Details (short)</label>
+          <textarea id="news-body" placeholder="Type the short update that will appear on the site"></textarea>
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button class="btn" id="add-news">Add Update</button>
+            <button class="btn ghost" id="clear-news">Clear All</button>
+          </div>
+
+          <hr style="margin:14px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)" />
+
+          <div class="muted small" style="margin-top:6px">Tips: Use short headlines. Post once per evening (6 PM IST). To make updates public for everyone, re-upload the index.html to GitHub after editing locally or push via web UI.</div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="card">
+          <h3>Site Info</h3>
+          <p class="small">Hosted: GitHub Pages (free). Admin edits are stored in your browser only. To keep a permanent public copy — upload to your repo.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <span class="chip">Schedule: 6 PM IST</span>
+            <span class="chip">Contact: <strong>YOUR_NUMBER</strong></span>
+            <span class="chip">Mode: Manual</span>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      Politics with Karthick — Built for free. Manage updates manually and publish to GitHub Pages. • ⚠️ No automation included.
+    </footer>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    // --- Utilities
+    function toast(msg, t=1800){const el=document.getElementById('toast');el.textContent=msg;el.style.display='block';setTimeout(()=>el.style.display='none',t)}
+    // data keys
+    const KEY_NEWS='pwk_news_v1';
+    const KEY_FORM='pwk_form_link';
+    const KEY_WA='pwk_wa_template';
+
+    // load
+    function loadState(){
+      const raw=localStorage.getItem(KEY_NEWS);
+      let items = raw? JSON.parse(raw): [];
+      renderNews(items);
+      const link=localStorage.getItem(KEY_FORM)||'';document.getElementById('google-form-link').value=link;
+      const wa=localStorage.getItem(KEY_WA)||document.getElementById('wa-template').value;document.getElementById('wa-template').value=wa;
+    }
+
+    function saveNews(items){localStorage.setItem(KEY_NEWS,JSON.stringify(items));renderNews(items)}
+
+    function renderNews(items){
+      const root=document.getElementById('news-list');root.innerHTML='';
+      if(!items.length){root.innerHTML='<div class="muted small">No updates yet — add one from the right.</div>';return}
+      items.slice().reverse().forEach(it=>{
+        const d=document.createElement('div');d.className='news-item';
+        d.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:start"><div><strong>${escapeHtml(it.title)}</strong><div class="meta">${escapeHtml(it.source)} • ${new Date(it.ts).toLocaleString()}</div></div><div><button class=\"btn ghost\" data-id=\"${it.id}\">Copy</button></div></div><div style="margin-top:8px">${escapeHtml(it.body)}</div>`;
+        root.appendChild(d);
+      });
+      // wire copy buttons
+      document.querySelectorAll('.news-item button').forEach(btn=>btn.addEventListener('click',e=>{
+        const id=e.target.getAttribute('data-id');
+        const items=JSON.parse(localStorage.getItem(KEY_NEWS)||'[]');
+        const it=items.find(x=>x.id===id);
+        if(it){navigator.clipboard.writeText(`${it.title}\n${it.body}\nSource: ${it.source}`);toast('Copied update to clipboard')}
+      }));
+    }
+
+    function escapeHtml(s){if(!s) return ''; return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\"','&quot;')}
+
+    // add news
+    document.getElementById('add-news').addEventListener('click',()=>{
+      const title=document.getElementById('news-title').value.trim();
+      const body=document.getElementById('news-body').value.trim();
+      const source=document.getElementById('news-source').value.trim();
+      if(!title || !body){toast('Title and details required');return}
+      const items=JSON.parse(localStorage.getItem(KEY_NEWS)||'[]');
+      const item={id:Date.now().toString(36),title,body,source,ts:Date.now()};
+      items.push(item);localStorage.setItem(KEY_NEWS,JSON.stringify(items));renderNews(items);toast('Added update — saved in browser');
+      document.getElementById('news-title').value='';document.getElementById('news-body').value='';document.getElementById('news-source').value='';
+    });
+
+    document.getElementById('clear-news').addEventListener('click',()=>{
+      if(!confirm('Clear ALL local updates? This deletes only your browser copy.')) return;localStorage.removeItem(KEY_NEWS);renderNews([]);toast('Cleared');
+    });
+
+    // save form link
+    document.getElementById('save-form').addEventListener('click',()=>{
+      const v=document.getElementById('google-form-link').value.trim();localStorage.setItem(KEY_FORM,v);toast('Saved form link (local)');
+    });
+    document.getElementById('open-form').addEventListener('click',()=>{
+      const v=document.getElementById('google-form-link').value.trim();if(!v){toast('No link saved');return}window.open(v,'_blank');
+    });
+
+    // whatsapp
+    document.getElementById('open-wa').addEventListener('click',()=>{
+      const msg=document.getElementById('wa-template').value.trim();localStorage.setItem(KEY_WA,msg);
+      const siteLink=location.href;const text=encodeURIComponent(msg.replace('[SITE_LINK]',siteLink));
+      // open web.whatsapp
+      const waUrl='https://wa.me/?text='+text;window.open(waUrl,'_blank');
+    });
+    document.getElementById('copy-wa').addEventListener('click',()=>{navigator.clipboard.writeText(document.getElementById('wa-template').value);toast('Copied template')});
+
+    // save wa-template when changed
+    document.getElementById('wa-template').addEventListener('change',()=>{localStorage.setItem(KEY_WA,document.getElementById('wa-template').value)});
+
+    // admin toggle
+    let adminMode=false;const editToggle=document.getElementById('edit-toggle');
+    editToggle.addEventListener('click',()=>{
+      adminMode=!adminMode;editToggle.textContent=adminMode? 'Admin: ON (editing)':'Admin: Edit';
+      document.querySelectorAll('input,textarea,button').forEach(el=>{if(el.id==='edit-toggle') return; el.disabled=!adminMode && el.className.indexOf('ghost')===-1 && el.id!=='open-form' && el.id!=='subscribe-btn' ? true : false});
+      toast(adminMode? 'Admin mode enabled — you can add updates':'Admin mode disabled')
+    });
+
+    // Launch whatsapp quick link
+    document.getElementById('launch-whatsapp').addEventListener('click',()=>{const tpl=localStorage.getItem(KEY_WA)||document.getElementById('wa-template').value;const text=encodeURIComponent(tpl.replace('[SITE_LINK]',location.href));window.open('https://wa.me/?text='+text,'_blank')});
+
+    // subscribe button anchors
+    document.getElementById('subscribe-btn').addEventListener('click',e=>{e.preventDefault();const link=localStorage.getItem(KEY_FORM);if(link) window.open(link,'_blank'); else {document.getElementById('google-form-link').focus(); toast('Add Google Form link') }});
+
+    // copy page URL
+    document.addEventListener('click',e=>{if(e.target && e.target.matches('[data-copy-url]')){navigator.clipboard.writeText(location.href);toast('URL copied')}})
+
+    // initial load
+    loadState();
+
+    // Insert a tiny sample update only if none exist (first-time user)
+    (function seed(){const items=JSON.parse(localStorage.getItem(KEY_NEWS)||'[]');if(items.length===0){items.push({id:'seed1',title:'Welcome — site ready',body:'This site is running in manual mode. Use the admin box to add updates and then push index.html to GitHub to publish publicly.',source:'System',ts:Date.now()});localStorage.setItem(KEY_NEWS,JSON.stringify(items));renderNews(items)}})();
+  </script>
+</body>
+</html>
