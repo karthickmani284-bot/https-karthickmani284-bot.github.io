@@ -17,11 +17,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Upload site files for Pages - use the supported Pages action
       - name: Upload static site for GitHub Pages
         uses: actions/upload-pages-artifact@v1
         with:
-          path: '.'
+          path: .
 
   deploy:
     needs: build
