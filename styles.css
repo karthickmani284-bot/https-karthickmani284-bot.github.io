@@ -66,3 +66,8 @@ h2,h3,h4{margin:6px 0}
   max-width: 900px;
   margin: 0 auto;
 }
+/* Hide logo image if you don't want it visible */
+.logo {
+  display: none !important;
+}
+
