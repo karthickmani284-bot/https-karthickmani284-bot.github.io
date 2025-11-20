@@ -108,7 +108,40 @@
   </div>
 </div>
 
-<div class="panel">
+<div class="panel"><script id="tpl-billing" type="text/template">
+    <div class="panel">
+      <h3>Billing</h3>
+      <div class="row small">
+        <label>Customer name <input id="bill-customer" /></label>
+        <label>GST % <input id="bill-gst" type="number" value="18" /></label>
+        <label>Discount (₹)<input id="bill-discount" type="number" value="0" /></label>
+      </div>
+
+      <div class="row">
+        <input id="search-product" placeholder="Search product by name or SKU or barcode" />
+        <button id="scan-barcode" class="btn">Scan barcode</button>
+      </div>
+
+      <table class="table" id="cart-table">
+        <thead><tr><th>SKU</th><th>Name</th><th>Price</th><th>Qty</th><th>Line</th><th>Action</th></tr></thead>
+        <tbody></tbody>
+      </table>
+
+      <div class="totals">
+        <div>Subtotal: <span id="sub-total">0.00</span></div>
+        <div>GST: <span id="gst-amt">0.00</span></div>
+        <div>Discount: <span id="disc-amt">0.00</span></div>
+        <div class="big">Total: <span id="total-amt">0.00</span></div>
+      </div>
+
+      <div class="row">
+        <button id="finalise-bill" class="btn primary">Complete Sale</button>
+        <button id="print-bill" class="btn">Print</button>
+        <button id="clear-cart" class="btn">Clear</button>
+      </div>
+    </div>
+  </script>
+
   <h4>Upload CSV Products</h4>
 
 
@@ -191,40 +224,7 @@
     </div>
   </script>
 
-  <script id="tpl-billing" type="text/template">
-    <div class="panel">
-      <h3>Billing</h3>
-      <div class="row small">
-        <label>Customer name <input id="bill-customer" /></label>
-        <label>GST % <input id="bill-gst" type="number" value="18" /></label>
-        <label>Discount (₹)<input id="bill-discount" type="number" value="0" /></label>
-      </div>
-
-      <div class="row">
-        <input id="search-product" placeholder="Search product by name or SKU or barcode" />
-        <button id="scan-barcode" class="btn">Scan barcode</button>
-      </div>
-
-      <table class="table" id="cart-table">
-        <thead><tr><th>SKU</th><th>Name</th><th>Price</th><th>Qty</th><th>Line</th><th>Action</th></tr></thead>
-        <tbody></tbody>
-      </table>
-
-      <div class="totals">
-        <div>Subtotal: <span id="sub-total">0.00</span></div>
-        <div>GST: <span id="gst-amt">0.00</span></div>
-        <div>Discount: <span id="disc-amt">0.00</span></div>
-        <div class="big">Total: <span id="total-amt">0.00</span></div>
-      </div>
-
-      <div class="row">
-        <button id="finalise-bill" class="btn primary">Complete Sale</button>
-        <button id="print-bill" class="btn">Print</button>
-        <button id="clear-cart" class="btn">Clear</button>
-      </div>
-    </div>
-  </script>
-
+  
   <script id="tpl-reports" type="text/template">
     <div class="panel">
       <h3>Reports</h3>
