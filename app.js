@@ -395,3 +395,29 @@ if(getSession()) showApp(); else showLogin();
 
 // expose loadProducts for cart refresh
 window.loadProducts = loadProducts;
+// Sector cards - click to load panels + highlight
+document.addEventListener('click', function (e) {
+  const card = e.target.closest('.sector-card');
+  if (!card) return;
+
+  // highlight active card
+  document.querySelectorAll('.sector-card').forEach(c => c.classList.remove('active'));
+  card.classList.add('active');
+
+  // Trigger existing buttons (Billing, Products, Users, Reports, History)
+  const targetId = card.dataset.target;
+  if (targetId) {
+    const btn = document.getElementById(targetId);
+    if (btn) {
+      btn.click();
+      return;
+    }
+  }
+});
+
+// Auto highlight Billing on load
+window.addEventListener('DOMContentLoaded', function () {
+  const defaultCard = document.getElementById('sector-billing');
+  if (defaultCard) defaultCard.click();
+});
+
