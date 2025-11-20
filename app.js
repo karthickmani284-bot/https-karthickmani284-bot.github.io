@@ -21,7 +21,7 @@ function load(key){ const s = localStorage.getItem(key); return s ? JSON.parse(s
 // initialize default data
 function initDefault(){
   if(!load(STORAGE_USERS)){
-    const admin = { email:'admin@nammo', pass:'admin123', first:'Admin', last:'User', role:'admin', expires: null };
+    const admin = { email:'admin@tn', pass:'admin123', first:'Admin', last:'User', role:'admin', expires: null };
     save(STORAGE_USERS, [admin]);
   }
   if(!load(STORAGE_PRODUCTS)){ save(STORAGE_PRODUCTS, [
