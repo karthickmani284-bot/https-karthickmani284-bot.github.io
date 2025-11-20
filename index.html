@@ -3,40 +3,50 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Bill 24x7</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Bill 24x7 — Clean</title>
+
+  <!-- Minimal styles included so this file works standalone -->
+  <style>
+    :root{--max:980px;--muted:#6c757d;--border:#e6e6e6;--primary:#2b7cff}
+    body{font-family:Inter,Arial,Helvetica,sans-serif;margin:0;background:#f5f6f8;color:#222}
+    .container{max-width:var(--max);margin:18px auto;padding:18px}
+    .card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 6px 18px rgba(20,20,20,0.06)}
+    .card.small{max-width:560px;margin:20px auto}
+    h2,h3,h4{margin:0 0 12px}
+    label{display:block;font-size:13px;color:var(--muted);margin:8px 0}
+    input[type=text],input[type=search],input[type=number],input[type=email],select{
+      width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:14px;box-sizing:border-box
+    }
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .row .col{flex:1}
+    .btn{padding:8px 12px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer}
+    .btn.primary{background:var(--primary);color:#fff;border-color:rgba(0,0,0,0.06)}
+    .muted{color:var(--muted);font-size:13px;margin:8px 0}
+    .table{width:100%;border-collapse:collapse;margin-top:12px}
+    .table th,.table td{padding:8px 10px;border-bottom:1px solid #ececec;text-align:left}
+    .small-note{font-size:13px;color:var(--muted);margin-top:6px}
+    .error{color:#c92b2b;background:#ffecec;padding:8px;border-radius:6px;margin:8px 0}
+    .top-actions{display:flex;gap:10px;align-items:center;margin-bottom:16px}
+    .sidebar{width:260px}
+    .layout{display:flex;gap:18px}
+    .right{flex:1}
+    .hidden{display:none!important}
+    .totals{margin-top:12px}
+    .totals .big{font-weight:700;font-size:18px;margin-top:6px}
+    @media (max-width:900px){ .layout{flex-direction:column}.sidebar{width:100%} }
+  </style>
 </head>
 <body>
-  <div id="app"></div>
+  <div id="app" class="container"></div>
 
-  <!-- Templates (single-page app) -->
-  <script id="tpl-nav" type="text/template">
-    <header class="nav">
-  <div class="brand">
-    <button id="menu-toggle" class="hamburger" aria-label="Toggle menu">☰</button>
-
-    <img src="mylogo.png" alt="Bill 24x7 Logo" class="logo">
-
-    <div class="brand-text">
-      <div class="title">Bill 24x7</div>
-      <div class="subtitle">Smart billing for shops</div>
-    </div>
-  </div>
-
-  <div class="nav-right">
-    <span class="small">User: <b>{{userName}}</b> ({{role}})</span>
-    <button id="btn-logout" class="btn">Logout</button>
-  </div>
-</header>
-  </script>
-
+  <!-- TEMPLATES (kept minimal & readable) -->
   <script id="tpl-login" type="text/template">
     <div class="card small">
       <h2>Login</h2>
       <form id="form-login">
         <label>Email <input type="email" id="login-email" required /></label>
         <label>Password <input type="password" id="login-password" required /></label>
-        <div class="row">
+        <div style="margin-top:8px">
           <button class="btn primary" type="submit">Login</button>
           <button id="go-signup" type="button" class="btn">Signup</button>
         </div>
@@ -45,258 +55,412 @@
     </div>
   </script>
 
-  <script id="tpl-signup" type="text/template">
-    <div class="card small">
-      <h2>Signup</h2>
-      <form id="form-signup">
-        <label>First name <input id="su-first" required /></label>
-        <label>Last name <input id="su-last" required /></label>
-        <label>Email <input id="su-email" type="email" required /></label>
-        <label>Phone <input id="su-phone" /></label>
-        <label>Location <input id="su-location" /></label>
-        <label>Password <input id="su-pass" type="password" required /></label>
-        <div class="row">
-          <button class="btn primary" type="submit">Create account</button>
-          <button id="back-login" type="button" class="btn">Back</button>
-        </div>
-      </form>
-    </div>
-  </script>
-
-  <script id="tpl-dashboard" type="text/template">
-    <div id="main">
+  <script id="tpl-main" type="text/template">
+    <div class="layout">
       <aside class="sidebar">
-        <div class="panel">
+        <div class="card">
           <h3>Quick Actions</h3>
-          <div class="actions">
+          <div class="top-actions">
             <button id="open-billing" class="btn full">Open Billing</button>
             <button id="open-products" class="btn full">Products</button>
-            <button id="open-users" class="btn full">Users</button>
-            <button id="open-reports" class="btn full">Reports</button>
-            <button id="open-history" class="btn full">Software History</button>
-         </aside>
-        </aside>
-    </aside>
+          </div>
 
-<!-- Main sectors (Below Quick Actions, Above Upload CSV) -->
-<div class="panel sectors-panel" aria-label="Main sectors">
-  <div class="sectors">
-    <button class="sector-card" data-target="open-billing" id="sector-billing">
-      <div class="sector-title">Billing</div>
-      <div class="sector-sub">Create invoices & complete sales</div>
-    </button>
-
-    <button class="sector-card" data-target="open-products" id="sector-products">
-      <div class="sector-title">Products</div>
-      <div class="sector-sub">Add / edit inventory</div>
-    </button>
-
-    <button class="sector-card" data-target="open-users" id="sector-users">
-      <div class="sector-title">Users</div>
-      <div class="sector-sub">Manage staff & roles</div>
-    </button>
-
-    <button class="sector-card" data-target="open-reports" id="sector-reports">
-      <div class="sector-title">Reports</div>
-      <div class="sector-sub">Sales & exports</div>
-    </button>
-
-    <button class="sector-card" data-target="open-history" id="sector-history">
-      <div class="sector-title">Software History</div>
-      <div class="sector-sub">About & release notes</div>
-    </button>
-  </div>
-</div>
-
-<div class="panel"><script id="tpl-billing" type="text/template">
-    <div class="panel">
-      <h3>Billing</h3>
-      <div class="row small">
-        <label>Customer name <input id="bill-customer" /></label>
-        <label>GST % <input id="bill-gst" type="number" value="18" /></label>
-        <label>Discount (₹)<input id="bill-discount" type="number" value="0" /></label>
-      </div>
-
-      <div class="row">
-        <input id="search-product" placeholder="Search product by name or SKU or barcode" />
-        <button id="scan-barcode" class="btn">Scan barcode</button>
-      </div>
-
-      <table class="table" id="cart-table">
-        <thead><tr><th>SKU</th><th>Name</th><th>Price</th><th>Qty</th><th>Line</th><th>Action</th></tr></thead>
-        <tbody></tbody>
-      </table>
-
-      <div class="totals">
-        <div>Subtotal: <span id="sub-total">0.00</span></div>
-        <div>GST: <span id="gst-amt">0.00</span></div>
-        <div>Discount: <span id="disc-amt">0.00</span></div>
-        <div class="big">Total: <span id="total-amt">0.00</span></div>
-      </div>
-
-      <div class="row">
-        <button id="finalise-bill" class="btn primary">Complete Sale</button>
-        <button id="print-bill" class="btn">Print</button>
-        <button id="clear-cart" class="btn">Clear</button>
-      </div>
-    </div>
-  </script>
-
-  <h4>Upload CSV Products</h4>
-
-
-        <div class="panel">
           <h4>Upload CSV Products</h4>
           <input id="csv-input" type="file" accept=".csv,text/csv" />
           <p class="muted">CSV columns: sku,name,price,quantity,barcode</p>
-          <button id="import-csv" class="btn">Import CSV</button>
-          <button id="export-products" class="btn">Export products.json</button>
-        </div>
+          <div style="margin-top:8px">
+            <button id="import-csv" class="btn">Import CSV</button>
+            <button id="export-products" class="btn">Export products.json</button>
+          </div>
 
-        <div class="panel">
-          <h4>Site Data</h4>
-          <button id="backup-json" class="btn">Download JSON</button>
-          <button id="restore-json" class="btn">Upload JSON</button>
-          <input id="restore-file" type="file" accept=".json" style="display:none" />
+          <h4 style="margin-top:16px">Site Data</h4>
+          <div style="margin-top:8px">
+            <button id="backup-json" class="btn">Download JSON</button>
+            <button id="restore-json" class="btn">Upload JSON</button>
+            <input id="restore-file" type="file" accept=".json" style="display:none" />
+          </div>
         </div>
       </aside>
 
-      <div class="right" id="right-panel">
-        <!-- dynamic region: billing/products/users/reports -->
+      <div class="right">
+        <div id="billing-area" class="card"></div>
+        <div id="products-area" class="card hidden" style="margin-top:12px"></div>
       </div>
     </div>
   </script>
 
+  <!-- Billing UI (rendered to billing-area) -->
+  <script id="tpl-billing" type="text/template">
+    <h3>Billing</h3>
+
+    <div class="row small" style="margin-bottom:8px">
+      <div class="col">
+        <label>Customer name
+          <input id="bill-customer" type="text" />
+        </label>
+      </div>
+
+      <div style="width:140px">
+        <label>GST % <input id="bill-gst" type="number" value="18" min="0" max="100" /></label>
+      </div>
+
+      <div style="width:140px">
+        <label>Discount (₹) <input id="bill-discount" type="number" value="0" min="0" /></label>
+      </div>
+    </div>
+
+    <div class="row" style="margin-bottom:8px">
+      <input id="search-product" type="search" placeholder="Search product by name or SKU or barcode" />
+      <button id="scan-barcode" class="btn">Scan barcode</button>
+    </div>
+
+    <table class="table" id="cart-table">
+      <thead><tr><th>SKU</th><th>Name</th><th>Price</th><th style="width:80px">Qty</th><th>Line</th><th>Action</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="totals">
+      <div>Subtotal: ₹ <span id="sub-total">0.00</span></div>
+      <div>GST: ₹ <span id="gst-amt">0.00</span></div>
+      <div>Discount: ₹ <span id="disc-amt">0.00</span></div>
+      <div class="big">Total: ₹ <span id="total-amt">0.00</span></div>
+    </div>
+
+    <div style="margin-top:10px;">
+      <button id="finalise-bill" class="btn primary">Complete Sale</button>
+      <button id="print-bill" class="btn">Print</button>
+      <button id="clear-cart" class="btn">Clear</button>
+    </div>
+  </script>
+
+  <!-- Products UI -->
   <script id="tpl-products" type="text/template">
-    <div class="panel">
-      <h3>Products</h3>
-      <button id="add-product-btn" class="btn">Add product</button>
-      <table class="table" id="products-table">
-        <thead><tr><th>SKU</th><th>Name</th><th>Price</th><th>Qty</th><th>Barcode</th><th>Actions</th></tr></thead>
-        <tbody></tbody>
-      </table>
-      <div id="product-form" style="display:none" class="card">
-        <h4 id="product-form-title">Add Product</h4>
-        <form id="form-product">
-          <label>SKU <input id="p-sku" required/></label>
-          <label>Name <input id="p-name" required/></label>
-          <label>Price <input id="p-price" type="number" required/></label>
-          <label>Quantity <input id="p-qty" type="number" required/></label>
-          <label>Barcode <input id="p-barcode"/></label>
-          <div class="row">
-            <button class="btn primary" type="submit">Save</button>
-            <button id="cancel-product" type="button" class="btn">Cancel</button>
-          </div>
-        </form>
+    <h3>Products</h3>
+
+    <div style="display:flex;gap:12px;margin-bottom:8px;align-items:center">
+      <button id="btn-new-product" class="btn">Add product</button>
+      <div class="small-note">Use Add product to test duplicate-checking</div>
+    </div>
+
+    <div id="product-form" class="card hidden" style="margin-bottom:8px">
+      <h4 id="product-form-title">Add Product</h4>
+      <div id="product-error" class="error hidden"></div>
+      <label>SKU <input id="p-sku" /></label>
+      <label>Name <input id="p-name" /></label>
+      <label>Price <input id="p-price" type="number" /></label>
+      <label>Quantity <input id="p-qty" type="number" /></label>
+      <label>Barcode <input id="p-barcode" /></label>
+      <div style="margin-top:8px">
+        <button id="save-product" class="btn primary">Save</button>
+        <button id="cancel-product" class="btn">Cancel</button>
       </div>
     </div>
+
+    <table class="table" id="products-table">
+      <thead><tr><th>SKU</th><th>Name</th><th>Price</th><th>Qty</th><th>Barcode</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
   </script>
 
-  <script id="tpl-users" type="text/template">
-    <div class="panel">
-      <h3>Users</h3>
-      <button id="create-user-btn" class="btn">Create User</button>
-      <table class="table" id="users-table">
-        <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Expires</th><th>Actions</th></tr></thead>
-        <tbody></tbody>
-      </table>
-
-      <div id="user-form" style="display:none" class="card">
-        <h4 id="user-form-title">Create User</h4>
-        <form id="form-user">
-          <label>Email <input id="u-email" type="email" required/></label>
-          <label>First name <input id="u-first" required/></label>
-          <label>Last name <input id="u-last" required/></label>
-          <label>Password <input id="u-pass" required/></label>
-          <label>Role:
-            <select id="u-role">
-              <option value="staff">Staff</option>
-              <option value="admin">Admin</option>
-            </select>
-          </label>
-          <label>Expiry date (optional) <input id="u-expiry" type="date"/></label>
-          <div class="row">
-            <button class="btn primary" type="submit">Save</button>
-            <button id="cancel-user" type="button" class="btn">Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </script>
-
-  
-  <script id="tpl-reports" type="text/template">
-    <div class="panel">
-      <h3>Reports</h3>
-      <div id="reports-area"></div>
-      <button id="export-sales" class="btn">Export sales JSON</button>
-    </div>
-  </script>
-
-  <!-- NEW: Software History template -->
-  <script id="tpl-history" type="text/template">
-    <div class="panel">
-      <h3>Software History</h3>
-
-      <p><b>Software Founder Name:</b> Karthick Subramanian</p>
-      <p><b>Software Release Date:</b> 19-November-2025</p>
-      <p><b>Based On:</b> Tamil Nadu</p>
-
-      <h4>Description</h4>
-      <p>This software is built to support billing and store management for Tamil Nadu–based shops and businesses. If you need any requirements or custom features, please contact us at 9659559016 or karthickmani284@gmail.com.</p>
-
-      <button id="back-history" class="btn">Back</button>
-    </div>
-  </script>
-
-  <script id="tpl-bills" type="text/template">
-    <!-- (existing templates continued - kept for compatibility) -->
-  </script>
-
-  <script src="app.js"></script>
-
-  <!-- Inline helper script: open history in right-panel and handle back -->
+  <!-- App script (clean, commented) -->
   <script>
-    (function () {
-      // Wait until DOM is ready
-      function ready(fn) {
-        if (document.readyState !== 'loading') fn();
-        else document.addEventListener('DOMContentLoaded', fn);
-      }
+  (function () {
+    // Minimal in-memory product store (for demo)
+    var products = [
+      {sku:'SKU001', name:'Pencil', price:10, quantity:50, barcode:'111'},
+      {sku:'SKU002', name:'Notebook', price:40, quantity:30, barcode:'222'}
+    ];
 
-      ready(function () {
-        // Render initial dashboard if your app expects it here.
-        // If app.js already manages initial render, this won't interfere.
-        var app = document.getElementById('app');
-        if (app && app.innerHTML.trim() === '') {
-          var dashTpl = document.getElementById('tpl-dashboard');
-          if (dashTpl) app.innerHTML = dashTpl.innerHTML;
+    var cart = []; // items: {sku,name,price,qty}
+
+    // --- Rendering helpers ---
+    function renderLogin() {
+      var app = document.getElementById('app');
+      app.innerHTML = document.getElementById('tpl-login').innerHTML;
+      var email = document.getElementById('login-email');
+      if (email) setTimeout(function(){ email.focus(); }, 60);
+    }
+
+    function renderMain() {
+      var app = document.getElementById('app');
+      app.innerHTML = document.getElementById('tpl-main').innerHTML;
+      renderBilling();
+      hookMainEvents();
+    }
+
+    function renderBilling() {
+      var area = document.getElementById('billing-area');
+      if (!area) return;
+      area.innerHTML = document.getElementById('tpl-billing').innerHTML;
+      // wire billing events
+      document.getElementById('bill-discount').addEventListener('input', calculateTotals);
+      document.getElementById('bill-gst').addEventListener('input', calculateTotals);
+      document.getElementById('search-product').addEventListener('keydown', function(e){
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          addProductToCartBySearch(this.value.trim());
+          this.value = '';
         }
+      });
+      document.getElementById('clear-cart').addEventListener('click', function(){ cart=[]; renderCart(); });
+      document.getElementById('finalise-bill').addEventListener('click', function(){ alert('Sale completed (demo)'); cart=[]; renderCart(); });
+      renderCart();
+    }
 
-        // Click handler for opening history and back
-        document.body.addEventListener('click', function (e) {
-          var target = e.target;
+    function renderCart() {
+      var tbody = document.querySelector('#cart-table tbody');
+      tbody.innerHTML = '';
+      var subtotal = 0;
+      cart.forEach(function(it, idx){
+        var line = Number(it.price) * Number(it.qty);
+        subtotal += line;
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + escapeHtml(it.sku) + '</td>' +
+                       '<td>' + escapeHtml(it.name) + '</td>' +
+                       '<td>₹' + Number(it.price).toFixed(2) + '</td>' +
+                       '<td><input type="number" value="' + Number(it.qty) + '" min="1" style="width:70px" data-idx="'+idx+'"></td>' +
+                       '<td>₹' + Number(line).toFixed(2) + '</td>' +
+                       '<td><button class="btn" data-remove="'+idx+'">Remove</button></td>';
+        tbody.appendChild(tr);
+      });
 
-          if (target && target.id === 'open-history') {
-            var tpl = document.getElementById('tpl-history');
-            var right = document.getElementById('right-panel');
-            if (tpl && right) {
-              right.innerHTML = tpl.innerHTML;
-              // scroll to top for usability
-              right.scrollTop = 0;
-            }
-          }
-
-          if (target && target.id === 'back-history') {
-            var rightPanel = document.getElementById('right-panel');
-            if (rightPanel) {
-              // clear right panel (user will see left dashboard again)
-              rightPanel.innerHTML = '';
-            }
-          }
+      // wire qty change and remove buttons
+      tbody.querySelectorAll('input[type=number]').forEach(function(inp){
+        inp.addEventListener('change', function(){
+          var idx = Number(this.dataset.idx);
+          var v = Number(this.value) || 1;
+          if (v < 1) v = 1;
+          cart[idx].qty = v;
+          renderCart();
         });
       });
-    })();
+      tbody.querySelectorAll('button[data-remove]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var idx = Number(this.dataset.remove);
+          cart.splice(idx,1);
+          renderCart();
+        });
+      });
+
+      // totals
+      document.getElementById('sub-total').textContent = subtotal.toFixed(2);
+      calculateTotals();
+    }
+
+    function calculateTotals() {
+      var subtotal = Number(document.getElementById('sub-total').textContent) || 0;
+      var gstPct = Number(document.getElementById('bill-gst').value) || 0;
+      var gstAmt = roundTwo(subtotal * (gstPct/100));
+      var disc = Number(document.getElementById('bill-discount').value) || 0;
+      // clamp discount to subtotal+gst (not negative)
+      if (disc < 0) disc = 0;
+      if (disc > subtotal + gstAmt) disc = subtotal + gstAmt;
+      var total = roundTwo(subtotal + gstAmt - disc);
+
+      document.getElementById('gst-amt').textContent = gstAmt.toFixed(2);
+      document.getElementById('disc-amt').textContent = disc.toFixed(2);
+      document.getElementById('total-amt').textContent = total.toFixed(2);
+    }
+
+    // --- Products area ---
+    function renderProducts() {
+      var area = document.getElementById('products-area');
+      if (!area) return;
+      area.innerHTML = document.getElementById('tpl-products').innerHTML;
+      updateProductsTable();
+      // wire buttons
+      document.getElementById('btn-new-product').addEventListener('click', function(){
+        document.getElementById('product-form').classList.remove('hidden');
+        document.getElementById('product-error').classList.add('hidden');
+      });
+      document.getElementById('cancel-product').addEventListener('click', function(){
+        document.getElementById('product-form').classList.add('hidden');
+      });
+      document.getElementById('save-product').addEventListener('click', function(){
+        var sku = (document.getElementById('p-sku').value || '').trim();
+        var name = (document.getElementById('p-name').value || '').trim();
+        var price = Number(document.getElementById('p-price').value) || 0;
+        var qty = Number(document.getElementById('p-qty').value) || 0;
+        var barcode = (document.getElementById('p-barcode').value || '').trim();
+
+        // duplicate name check (case-insensitive)
+        var exists = products.some(function(p){ return p.name.toLowerCase() === name.toLowerCase(); });
+        if (exists) {
+          var err = document.getElementById('product-error');
+          err.textContent = 'Product with this name already exists. Duplicate names are not allowed.';
+          err.classList.remove('hidden');
+          return;
+        }
+        // add
+        products.push({sku:sku||generateSKU(), name:name || 'Unnamed', price:price, quantity:qty, barcode:barcode});
+        document.getElementById('product-form').classList.add('hidden');
+        // clear inputs
+        ['p-sku','p-name','p-price','p-qty','p-barcode'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value='';});
+        updateProductsTable();
+      });
+    }
+
+    function updateProductsTable() {
+      var tbody = document.querySelector('#products-table tbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      products.forEach(function(p, idx){
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td>'+escapeHtml(p.sku)+'</td>' +
+                       '<td>'+escapeHtml(p.name)+'</td>' +
+                       '<td>₹'+Number(p.price).toFixed(2)+'</td>' +
+                       '<td>'+Number(p.quantity)+'</td>' +
+                       '<td>'+escapeHtml(p.barcode)+'</td>' +
+                       '<td><button class="btn" data-add="'+idx+'">Add to cart</button></td>';
+        tbody.appendChild(tr);
+      });
+      // add-to-cart wiring
+      tbody.querySelectorAll('button[data-add]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var idx = Number(this.dataset.add);
+          var p = products[idx];
+          addToCart(p.sku,1);
+        });
+      });
+    }
+
+    // --- Core actions ---
+    function addProductToCartBySearch(q) {
+      if (!q) return;
+      var found = products.find(function(p){
+        return p.sku.toLowerCase() === q.toLowerCase() ||
+               p.name.toLowerCase() === q.toLowerCase() ||
+               p.barcode === q;
+      });
+      if (!found) {
+        alert('Product not found: ' + q);
+        return;
+      }
+      addToCart(found.sku, 1);
+    }
+
+    function addToCart(sku, qty) {
+      var p = products.find(function(x){ return x.sku === sku; });
+      if (!p) return;
+      // find existing in cart
+      var c = cart.find(function(x){ return x.sku === sku; });
+      if (c) {
+        c.qty = Number(c.qty) + Number(qty);
+      } else {
+        cart.push({sku:p.sku, name:p.name, price:Number(p.price), qty:Number(qty)});
+      }
+      renderCart();
+    }
+
+    // --- Utilities ---
+    function generateSKU() {
+      return 'SKU' + Math.floor(Math.random()*90000+10000);
+    }
+    function roundTwo(x){ return Math.round((x+Number.EPSILON)*100)/100; }
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; }); }
+
+    // --- Hook main actions (CSV, products, nav) ---
+    function hookMainEvents() {
+      document.getElementById('open-products').addEventListener('click', function(){
+        document.getElementById('products-area').classList.remove('hidden');
+        document.getElementById('billing-area').classList.add('hidden');
+        renderProducts();
+      });
+      document.getElementById('open-billing').addEventListener('click', function(){
+        document.getElementById('billing-area').classList.remove('hidden');
+        document.getElementById('products-area').classList.add('hidden');
+      });
+
+      // CSV import (very simple parser: expects header sku,name,price,quantity,barcode)
+      document.getElementById('import-csv').addEventListener('click', function(){
+        var input = document.getElementById('csv-input');
+        if (!input.files || !input.files[0]) { alert('Choose CSV file first'); return; }
+        var fr = new FileReader();
+        fr.onload = function(e){
+          var text = e.target.result;
+          var lines = text.split(/\r?\n/).filter(Boolean);
+          var header = lines.shift().split(',').map(s=>s.trim().toLowerCase());
+          lines.forEach(function(line){
+            var cols = line.split(',').map(s=>s.trim());
+            var obj = {};
+            header.forEach(function(h,i){ obj[h]=cols[i]||''; });
+            // basic duplicate check by name
+            var exists = products.some(function(p){ return p.name.toLowerCase() === (obj.name||'').toLowerCase(); });
+            if (exists) {
+              console.warn('Skipped duplicate product name:', obj.name);
+              return;
+            }
+            products.push({ sku: obj.sku || generateSKU(), name: obj.name||'Unnamed', price: Number(obj.price)||0, quantity: Number(obj.quantity)||0, barcode: obj.barcode||'' });
+          });
+          updateProductsTable();
+          alert('CSV imported (duplicates by name are skipped).');
+        };
+        fr.readAsText(input.files[0], 'utf-8');
+      });
+
+      document.getElementById('export-products').addEventListener('click', function(){
+        var data = JSON.stringify(products, null, 2);
+        var blob = new Blob([data], {type:'application/json'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = 'products.json'; document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      document.getElementById('backup-json').addEventListener('click', function(){
+        var data = { products: products };
+        var blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a'); a.href=url; a.download='site-backup.json'; document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      // restore JSON upload (basic)
+      document.getElementById('restore-json').addEventListener('click', function(){ document.getElementById('restore-file').click(); });
+      document.getElementById('restore-file').addEventListener('change', function(e){
+        var f = e.target.files[0]; if (!f) return;
+        var fr = new FileReader(); fr.onload = function(ev){
+          try {
+            var data = JSON.parse(ev.target.result);
+            if (Array.isArray(data.products)) {
+              products = data.products;
+              updateProductsTable(); alert('Restored products OK');
+            } else alert('Invalid backup format');
+          } catch(err){ alert('Invalid JSON file') }
+        }; fr.readAsText(f,'utf-8');
+      });
+    }
+
+    // --- Login wiring ---
+    function bootstrap() {
+      // show login first
+      renderLogin();
+
+      // global forms (login)
+      document.body.addEventListener('submit', function(e){
+        var id = (e.target && e.target.id) || '';
+        if (id === 'form-login') {
+          e.preventDefault();
+          // minimal demo authentication: check default credentials OR accept any non-empty
+          var email = (document.getElementById('login-email').value||'').trim();
+          var pass = (document.getElementById('login-password').value||'').trim();
+          if ((email === 'admin@tn' && pass === 'admin1998') || (email && pass)) {
+            // on successful login, render main UI
+            window.showMain(); // public helper
+          } else {
+            alert('Invalid credentials');
+          }
+        }
+      });
+
+      // expose public helpers
+      window.showMain = function(){ renderMain(); };
+      window.showLogin = function(){ renderLogin(); };
+    }
+
+    // start
+    document.addEventListener('DOMContentLoaded', bootstrap);
+  })();
   </script>
 </body>
 </html>
