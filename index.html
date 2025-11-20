@@ -63,6 +63,7 @@
             <button id="open-products" class="btn full">Products</button>
             <button id="open-users" class="btn full">Users</button>
             <button id="open-reports" class="btn full">Reports</button>
+            <button id="open-history" class="btn full">Software History</button>
           </div>
         </div>
 
@@ -187,6 +188,70 @@
     </div>
   </script>
 
+  <!-- NEW: Software History template -->
+  <script id="tpl-history" type="text/template">
+    <div class="panel">
+      <h3>Software History</h3>
+
+      <p><b>Software Founder Name:</b> Karthick Subramanian</p>
+      <p><b>Software Release Date:</b> 19-November-2025</p>
+      <p><b>Based On:</b> Tamil Nadu</p>
+
+      <h4>Description</h4>
+      <p>This software is built to support billing and store management for Tamil Nadu–based shops and businesses. It includes AI-assisted features for better usability and automation.</p>
+
+      <button id="back-history" class="btn">Back</button>
+    </div>
+  </script>
+
+  <script id="tpl-bills" type="text/template">
+    <!-- (existing templates continued - kept for compatibility) -->
+  </script>
+
   <script src="app.js"></script>
+
+  <!-- Inline helper script: open history in right-panel and handle back -->
+  <script>
+    (function () {
+      // Wait until DOM is ready
+      function ready(fn) {
+        if (document.readyState !== 'loading') fn();
+        else document.addEventListener('DOMContentLoaded', fn);
+      }
+
+      ready(function () {
+        // Render initial dashboard if your app expects it here.
+        // If app.js already manages initial render, this won't interfere.
+        var app = document.getElementById('app');
+        if (app && app.innerHTML.trim() === '') {
+          var dashTpl = document.getElementById('tpl-dashboard');
+          if (dashTpl) app.innerHTML = dashTpl.innerHTML;
+        }
+
+        // Click handler for opening history and back
+        document.body.addEventListener('click', function (e) {
+          var target = e.target;
+
+          if (target && target.id === 'open-history') {
+            var tpl = document.getElementById('tpl-history');
+            var right = document.getElementById('right-panel');
+            if (tpl && right) {
+              right.innerHTML = tpl.innerHTML;
+              // scroll to top for usability
+              right.scrollTop = 0;
+            }
+          }
+
+          if (target && target.id === 'back-history') {
+            var rightPanel = document.getElementById('right-panel');
+            if (rightPanel) {
+              // clear right panel (user will see left dashboard again)
+              rightPanel.innerHTML = '';
+            }
+          }
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
