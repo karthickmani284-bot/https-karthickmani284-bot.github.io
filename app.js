@@ -1,5 +1,5 @@
-/* Nammo-Billing - Frontend only (JSON/localStorage)
-   - Admin user default: admin@nammo / admin123 (role: admin)
+/* Amma-Billing - Frontend only (JSON/localStorage)
+   - Admin user default: admin@tn / admin123 (role: admin)
    - Data stored in localStorage keys: nb_users, nb_products, nb_sales
 */
 
