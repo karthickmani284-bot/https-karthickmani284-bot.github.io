@@ -1,381 +1,1277 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Bill 24*7 — Single file</title>
-  <style>
-    :root{--accent:#2b7aeb;--muted:#666;--card:#fff;--bg:#f4f7fb}
-    *{box-sizing:border-box;font-family:Inter,system-ui,Arial,Helvetica,sans-serif}
-    body{margin:0;background:var(--bg);color:#222}
-    .nav{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-    .brand{font-weight:700;font-size:18px}
-    .small{font-size:13px;color:var(--muted)}
-    .btn{padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer}
-    .btn:hover{opacity:.95}
-    .primary{background:var(--accent);color:#fff;border-color:transparent}
-    .card{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 6px 18px rgba(33,33,33,.04)}
-    .small.card{max-width:420px;margin:36px auto}
-    form label{display:block;margin:8px 0;font-size:14px}
-    input[type="text"],input[type="email"],input[type="password"],input[type="number"],input[type="date"],select{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px}
-    #main{display:flex;gap:16px;padding:18px}
-    .left{width:320px}
-    .right{flex:1}
-    .panel{margin-bottom:14px}
-    .actions .btn.full{width:100%;display:block;margin-bottom:8px}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px;border-bottom:1px solid #eee;text-align:left;font-size:13px}
-    .row{display:flex;gap:8px;align-items:center}
-    .row .btn{flex:0}
-    .muted{color:var(--muted);font-size:13px}
-    .totals{margin:10px 0}
-    .big{font-weight:700;font-size:18px}
-    .hidden{display:none}
-    footer{padding:10px;text-align:center;color:var(--muted);font-size:13px}
-  </style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bill 24*7 POS - Karthick Subramanian</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#2563eb',
+              secondary: '#475569',
+              danger: '#ef4444',
+              success: '#22c55e'
+            }
+          }
+        }
+      }
+    </script>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX/TS transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Recharts -->
+    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+    
+    <!-- Lucide React Icons -->
+    <script src="https://unpkg.com/lucide-react@0.263.1/dist/lucide-react.min.js"></script>
+
+    <style>
+      /* Custom scrollbar for cleaner look */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f5f9; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1; 
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8; 
+      }
+      @media print {
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        body { background: white; }
+        .shadow-sm, .shadow-lg, .shadow-xl { box-shadow: none !important; }
+      }
+      .print-only { display: none; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.4.1"
+  }
+}
+</script>
 </head>
-<body>
-  <div id="app"></div>
+<body class="bg-slate-50 text-slate-900 antialiased">
+    <div id="root"></div>
 
-  <!-- templates (kept inline for clarity) -->
+    <script type="text/babel" data-presets="typescript,react">
+        const { useState, useEffect, useMemo, useRef } = React;
+        const { createRoot } = ReactDOM;
+        const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } = Recharts;
+        // Destructure icons from the global lucideReact object
+        const { 
+            Printer, Search, Trash2, Plus, Minus, ShoppingCart, 
+            CheckCircle, Edit, Download, Upload, Users, BarChart3, 
+            Settings, UserPlus, Package 
+        } = lucideReact;
 
-  <script>
-  // Simple single-file app. Fixes login credential errors by ensuring default admin exists
-  (function(){
-    // Utilities
-    const $ = (sel, ctx=document) => ctx.querySelector(sel);
-    const el = (tag, props={}, children=[]) => { const e=document.createElement(tag); Object.assign(e,props); (Array.isArray(children)?children:[children]).forEach(c=>c && e.appendChild(typeof c==='string'?document.createTextNode(c):c)); return e };
+        // --- TYPES & CONSTANTS ---
 
-    // Storage helpers
-    const STORAGE_KEY = 'bill247_data_v1';
-    function loadData(){
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if(!raw) return {users:[],products:[],sales:[]};
-      try{return JSON.parse(raw)}catch(e){console.error('corrupt data',e);return {users:[],products:[],sales:[]}}}
-    function saveData(d){localStorage.setItem(STORAGE_KEY,JSON.stringify(d))}
+        const UserRole = {
+            ADMIN: 'admin',
+            STAFF: 'staff'
+        };
 
-    // ensure default admin exists
-    const data = loadData();
-    if(!data.users) data.users = [];
-    const adminEmail = 'admin@nammo';
-    if(!data.users.find(u=>u.email===adminEmail)){
-      data.users.push({email:adminEmail,password:'admin123',first:'Admin',last:'User',role:'admin',expires:null});
-      saveData(data);
-      console.log('Default admin added: admin@nammo / admin123');
-    }
+        // --- DATA SERVICE ---
 
-    // app state
-    const state = {user:null,data:loadData(),view:'login',editingProduct:null};
+        const STORAGE_KEYS = {
+            USERS: 'bill247_users',
+            PRODUCTS: 'bill247_products',
+            SALES: 'bill247_sales',
+            CURRENT_USER: 'bill247_current_user'
+        };
 
-    // root
-    const root = document.getElementById('app');
+        // Initialize with default admin if empty
+        const initData = () => {
+            if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
+                const defaultAdmin = {
+                    id: '1',
+                    email: 'admin@nammo',
+                    firstName: 'Super',
+                    lastName: 'Admin',
+                    password: 'admin123',
+                    role: UserRole.ADMIN
+                };
+                localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify([defaultAdmin]));
+            }
+            
+            if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) {
+                const sampleProducts = [
+                    { sku: 'P001', name: 'Wireless Mouse', price: 25.00, quantity: 50, barcode: '123456789' },
+                    { sku: 'P002', name: 'Mechanical Keyboard', price: 85.00, quantity: 20, barcode: '987654321' },
+                    { sku: 'P003', name: 'USB-C Cable', price: 12.50, quantity: 100, barcode: '11223344' },
+                ];
+                localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(sampleProducts));
+            }
 
-    // render functions for templates
-    function render(){
-      root.innerHTML='';
-      if(state.user) renderApp();
-      else renderLogin();
-    }
+            if (!localStorage.getItem(STORAGE_KEYS.SALES)) {
+                localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify([]));
+            }
+        };
 
-    // Navigation
-    function renderNav(){
-      const nav = el('header',{className:'nav'});
-      nav.appendChild(el('div',{className:'brand'},['Bill 24*7']));
-      const right = el('div',{className:'nav-right'});
-      right.innerHTML = `<span class="small">User: <b>${state.user.first} ${state.user.last}</b> (${state.user.role})</span> `;
-      const logoutBtn = el('button',{className:'btn',id:'btn-logout'},['Logout']);
-      logoutBtn.addEventListener('click',()=>{state.user=null;state.view='login';render();});
-      right.appendChild(logoutBtn);
-      nav.appendChild(right);
-      root.appendChild(nav);
-    }
+        initData();
 
-    // Login / Signup
-    function renderLogin(){
-      const container = el('div');
-      const card = el('div',{className:'card small'});
-      const h2 = el('h2',{},['Login']);
-      card.appendChild(h2);
-      const form = el('form',{id:'form-login'});
-      form.innerHTML = `
-        <label>Email <input type="email" id="login-email" required /></label>
-        <label>Password <input type="password" id="login-password" required /></label>
-        <div class="row">
-          <button class="btn primary" type="submit">Login</button>
-          <button id="go-signup" type="button" class="btn">Signup</button>
-        </div>
-        <p class="muted">Default admin: <b>admin@nammo</b> / <b>admin123</b></p>
-      `;
-      card.appendChild(form);
-      container.appendChild(card);
-      root.appendChild(container);
+        const DataService = {
+            // Auth
+            login: (email, pass) => {
+                const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+                const user = users.find(u => u.email === email && u.password === pass);
+                if (user) {
+                    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+                    return user;
+                }
+                return null;
+            },
 
-      // events
-      form.addEventListener('submit',ev=>{
-        ev.preventDefault();
-        const email = form.querySelector('#login-email').value.trim();
-        const pass = form.querySelector('#login-password').value;
-        const user = state.data.users.find(u=>u.email.toLowerCase()===email.toLowerCase() && u.password===pass);
-        if(!user){alert('Invalid credentials. Use admin@nammo / admin123 or create a new account via Signup.');return}
-        state.user = user; state.view='dashboard'; render();
-      });
-      form.querySelector('#go-signup').addEventListener('click',()=>renderSignup());
-    }
+            logout: () => {
+                localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+            },
 
-    function renderSignup(){
-      root.innerHTML='';
-      const card = el('div',{className:'card small'});
-      card.appendChild(el('h2',{},['Signup']));
-      const form = el('form',{id:'form-signup'});
-      form.innerHTML = `
-        <label>First name <input id="su-first" required /></label>
-        <label>Last name <input id="su-last" required /></label>
-        <label>Email <input id="su-email" type="email" required /></label>
-        <label>Phone <input id="su-phone" /></label>
-        <label>Location <input id="su-location" /></label>
-        <label>Password <input id="su-pass" type="password" required /></label>
-        <div class="row">
-          <button class="btn primary" type="submit">Create account</button>
-          <button id="back-login" type="button" class="btn">Back</button>
-        </div>
-      `;
-      card.appendChild(form);
-      root.appendChild(card);
+            getCurrentUser: () => {
+                const u = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+                return u ? JSON.parse(u) : null;
+            },
 
-      form.addEventListener('submit',ev=>{
-        ev.preventDefault();
-        const u = {email:form.querySelector('#su-email').value.trim().toLowerCase(),password:form.querySelector('#su-pass').value,first:form.querySelector('#su-first').value,last:form.querySelector('#su-last').value,role:'staff'};
-        if(state.data.users.find(x=>x.email===u.email)){alert('User already exists');return}
-        state.data.users.push(u); saveData(state.data); alert('Account created. Login now.'); render();
-      });
-      form.querySelector('#back-login').addEventListener('click',()=>render());
-    }
+            // Users
+            getUsers: () => JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]'),
+            
+            saveUser: (user) => {
+                const users = DataService.getUsers();
+                const existingIndex = users.findIndex(u => u.email === user.email);
+                if (existingIndex >= 0) {
+                    users[existingIndex] = { ...users[existingIndex], ...user };
+                } else {
+                    users.push({ ...user, id: Date.now().toString() });
+                }
+                localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+            },
 
-    // full app
-    function renderApp(){
-      renderNav();
-      const main = el('div',{id:'main'});
-      const left = el('div',{className:'left'});
+            deleteUser: (email) => {
+                const users = DataService.getUsers().filter(u => u.email !== email);
+                localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+            },
 
-      // Quick actions
-      const panel = el('div',{className:'panel card'});
-      panel.appendChild(el('h3',{},['Quick Actions']));
-      const actions = el('div',{className:'actions'});
-      ['Open Billing','Products','Users','Reports'].forEach((t,i)=>{
-        const btn = el('button',{className:'btn full'},[t]);
-        btn.addEventListener('click',()=>{const views=['billing','products','users','reports']; state.view=views[i]; renderApp();});
-        actions.appendChild(btn);
-      });
-      panel.appendChild(actions);
-      left.appendChild(panel);
+            // Products
+            getProducts: () => JSON.parse(localStorage.getItem(STORAGE_KEYS.PRODUCTS) || '[]'),
 
-      // CSV + backup
-      const panel2 = el('div',{className:'panel card'});
-      panel2.appendChild(el('h4',{},['Upload CSV Products']));
-      const csvInput = el('input',{type:'file',id:'csv-input',accept:'.csv'});
-      panel2.appendChild(csvInput);
-      panel2.appendChild(el('p',{className:'muted'},['CSV columns: sku,name,price,quantity,barcode']));
-      const importBtn = el('button',{className:'btn'},['Import CSV']);
-      const exportBtn = el('button',{className:'btn'},['Export products.json']);
-      panel2.appendChild(importBtn); panel2.appendChild(exportBtn);
-      left.appendChild(panel2);
+            saveProduct: (product) => {
+                const products = DataService.getProducts();
+                const existingIndex = products.findIndex(p => p.sku === product.sku);
+                if (existingIndex >= 0) {
+                    products[existingIndex] = product;
+                } else {
+                    products.push(product);
+                }
+                localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+            },
 
-      const panel3 = el('div',{className:'panel card'});
-      panel3.appendChild(el('h4',{},['Site Data']));
-      const backupBtn = el('button',{className:'btn'},['Download JSON']);
-      const restoreBtn = el('button',{className:'btn'},['Upload JSON']);
-      const restoreFile = el('input',{type:'file',id:'restore-file',accept:'.json',style:'display:none'});
-      panel3.appendChild(backupBtn); panel3.appendChild(restoreBtn); panel3.appendChild(restoreFile);
-      left.appendChild(panel3);
+            deleteProduct: (sku) => {
+                const products = DataService.getProducts().filter(p => p.sku !== sku);
+                localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+            },
 
-      main.appendChild(left);
-      const right = el('div',{className:'right'});
-      right.innerHTML = '';
+            importProducts: (newProducts) => {
+                // Merge logic: Overwrite existing by SKU, add new
+                const current = DataService.getProducts();
+                const map = new Map(current.map(p => [p.sku, p]));
+                newProducts.forEach(p => map.set(p.sku, p));
+                localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(Array.from(map.values())));
+            },
 
-      // Render current view
-      if(state.view==='products') renderProducts(right);
-      else if(state.view==='users') renderUsers(right);
-      else if(state.view==='billing') renderBilling(right);
-      else if(state.view==='reports') renderReports(right);
-      else renderBilling(right);
+            updateStock: (items) => {
+                const products = DataService.getProducts();
+                items.forEach(item => {
+                    const p = products.find(prod => prod.sku === item.sku);
+                    if (p) p.quantity = Math.max(0, p.quantity - item.qtySold);
+                });
+                localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+            },
 
-      main.appendChild(right);
-      root.appendChild(main);
+            // Sales
+            getSales: () => JSON.parse(localStorage.getItem(STORAGE_KEYS.SALES) || '[]'),
 
-      // events
-      importBtn.addEventListener('click',()=>{
-        const f = csvInput.files[0]; if(!f){alert('Select CSV file first');return}
-        const reader = new FileReader();
-        reader.onload = e=>{
-          const txt = e.target.result; const rows = txt.split(/\r?\n/).map(r=>r.trim()).filter(Boolean);
-          rows.forEach((r,i)=>{ if(i===0 && r.toLowerCase().includes('sku')) return; const cols=r.split(',').map(c=>c.trim()); const [sku,name,price,quantity,barcode]=cols; if(!sku) return; state.data.products.push({sku,name,price:Number(price||0),quantity:Number(quantity||0),barcode}); });
-          saveData(state.data); alert('Imported'); render();
-        }; reader.readAsText(f);
-      });
+            saveSale: (sale) => {
+                const sales = DataService.getSales();
+                sales.push(sale);
+                localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
+                
+                // Update inventory
+                DataService.updateStock(sale.items.map(i => ({ sku: i.sku, qtySold: i.cartQty })));
+            },
 
-      exportBtn.addEventListener('click',()=>{ const blob=new Blob([JSON.stringify(state.data.products,null,2)],{type:'application/json'}); const u=URL.createObjectURL(blob); const a=el('a',{href:u,download:'products.json'}); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(u);} );
+            // Backup/Restore
+            getBackupData: () => {
+                return {
+                    users: DataService.getUsers(),
+                    products: DataService.getProducts(),
+                    sales: DataService.getSales()
+                };
+            },
 
-      backupBtn.addEventListener('click',()=>{ const blob=new Blob([JSON.stringify(state.data,null,2)],{type:'application/json'}); const u=URL.createObjectURL(blob); const a=el('a',{href:u,download:'site-backup.json'}); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(u);} );
+            restoreBackupData: (json) => {
+                if (json.users) localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(json.users));
+                if (json.products) localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(json.products));
+                if (json.sales) localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(json.sales));
+            }
+        };
 
-      restoreBtn.addEventListener('click',()=>restoreFile.click());
-      restoreFile.addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=ev=>{ try{ state.data=JSON.parse(ev.target.result); saveData(state.data); alert('Site data restored'); render(); }catch(err){alert('Invalid JSON') } }; r.readAsText(f); });
-    }
+        // --- COMPONENTS ---
 
-    // Products view
-    function renderProducts(container){
-      const panel = el('div',{className:'panel card'});
-      panel.appendChild(el('h3',{},['Products']));
-      const addBtn = el('button',{className:'btn'},['Add product']);
-      panel.appendChild(addBtn);
-      const table = el('table',{className:'table'});
-      table.innerHTML = `<thead><tr><th>SKU</th><th>Name</th><th>Price</th><th>Qty</th><th>Barcode</th><th>Actions</th></tr></thead><tbody></tbody>`;
-      const tbody = table.querySelector('tbody');
-      state.data.products.forEach(p=>{
-        const tr = el('tr'); tr.innerHTML = `<td>${p.sku}</td><td>${p.name}</td><td>${p.price}</td><td>${p.quantity}</td><td>${p.barcode||''}</td><td></td>`;
-        const actionTd = tr.querySelector('td:last-child');
-        const edit = el('button',{className:'btn'},['Edit']);
-        const del = el('button',{className:'btn'},['Delete']);
-        edit.addEventListener('click',()=>{ state.editingProduct = p; state.view='products'; render(); document.getElementById('p-sku').value=p.sku; document.getElementById('p-name').value=p.name; document.getElementById('p-price').value=p.price; document.getElementById('p-qty').value=p.quantity; document.getElementById('p-barcode').value=p.barcode; document.getElementById('product-form').style.display='block'; document.getElementById('product-form-title').innerText='Edit Product'; });
-        del.addEventListener('click',()=>{ if(confirm('Delete product?')){ state.data.products = state.data.products.filter(x=>x!==p); saveData(state.data); render(); } });
-        actionTd.appendChild(edit); actionTd.appendChild(del);
-        tbody.appendChild(tr);
-      });
-      panel.appendChild(table);
+        const Navbar = ({ user, onLogout, onNavigate }) => {
+            return (
+                <header className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50 no-print">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between h-16 items-center">
+                            <div 
+                                className="flex items-center cursor-pointer" 
+                                onClick={() => onNavigate('dashboard')}
+                            >
+                                <div className="bg-primary text-white font-bold text-xl p-2 rounded-lg mr-3">B</div>
+                                <h1 className="text-xl font-bold text-slate-800">Bill 24*7</h1>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                                <div className="hidden md:flex flex-col items-end mr-4">
+                                    <span className="text-sm font-medium text-slate-900">{user.firstName} {user.lastName}</span>
+                                    <span className="text-xs text-slate-500 capitalize bg-slate-100 px-2 rounded-full">{user.role}</span>
+                                </div>
+                                <button 
+                                    onClick={onLogout}
+                                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
 
-      // form
-      const formCard = el('div',{className:'card',id:'product-form',style:'display:none;margin-top:10px'});
-      formCard.innerHTML = `<h4 id="product-form-title">Add Product</h4>
-        <form id="form-product">
-          <label>SKU <input id="p-sku" required/></label>
-          <label>Name <input id="p-name" required/></label>
-          <label>Price <input id="p-price" type="number" required/></label>
-          <label>Quantity <input id="p-qty" type="number" required/></label>
-          <label>Barcode <input id="p-barcode"/></label>
-          <div class="row"><button class="btn primary" type="submit">Save</button><button id="cancel-product" type="button" class="btn">Cancel</button></div>
-        </form>`;
-      panel.appendChild(formCard);
+        const Billing = ({ currentUser }) => {
+            const [products, setProducts] = useState([]);
+            const [cart, setCart] = useState([]);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [customerName, setCustomerName] = useState('');
+            const [gstRate, setGstRate] = useState(18);
+            
+            const [discount, setDiscount] = useState(0);
+            const [discountInput, setDiscountInput] = useState('');
+            
+            const [lastSale, setLastSale] = useState(null);
+            const [showReceipt, setShowReceipt] = useState(false);
 
-      container.appendChild(panel);
+            const barcodeInputRef = useRef(null);
 
-      addBtn.addEventListener('click',()=>{ document.getElementById('product-form').style.display='block'; document.getElementById('product-form-title').innerText='Add Product'; document.getElementById('form-product').reset(); state.editingProduct=null; });
+            useEffect(() => {
+                setProducts(DataService.getProducts());
+            }, []);
 
-      const form = panel.querySelector('#form-product');
-      form.addEventListener('submit',ev=>{
-        ev.preventDefault(); const sku = form.querySelector('#p-sku').value.trim(); const name=form.querySelector('#p-name').value.trim(); const price=Number(form.querySelector('#p-price').value)||0; const qty=Number(form.querySelector('#p-qty').value)||0; const barcode=form.querySelector('#p-barcode').value.trim();
-        if(state.editingProduct){ // update
-          state.editingProduct.sku=sku; state.editingProduct.name=name; state.editingProduct.price=price; state.editingProduct.quantity=qty; state.editingProduct.barcode=barcode;
-        }else{ state.data.products.push({sku,name,price,quantity:qty,barcode}); }
-        saveData(state.data); document.getElementById('product-form').style.display='none'; render();
-      });
-      panel.querySelector('#cancel-product').addEventListener('click',()=>{ document.getElementById('product-form').style.display='none'; state.editingProduct=null; });
-    }
+            // Calculations
+            const subTotal = useMemo(() => {
+                return cart.reduce((acc, item) => acc + (item.price * item.cartQty), 0);
+            }, [cart]);
 
-    // Users view
-    function renderUsers(container){
-      const panel = el('div',{className:'panel card'});
-      panel.appendChild(el('h3',{},['Users']));
-      const addBtn = el('button',{className:'btn'},['Create User']);
-      panel.appendChild(addBtn);
-      const table = el('table'); table.innerHTML = `<thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Expires</th><th>Actions</th></tr></thead><tbody></tbody>`;
-      const tbody = table.querySelector('tbody');
-      state.data.users.forEach(u=>{ const tr=el('tr'); tr.innerHTML=`<td>${u.email}</td><td>${u.first||''} ${u.last||''}</td><td>${u.role||'staff'}</td><td>${u.expires||''}</td><td></td>`; const td=tr.querySelector('td:last-child'); const del=el('button',{className:'btn'},['Delete']); del.addEventListener('click',()=>{ if(confirm('Delete user?')){ state.data.users=state.data.users.filter(x=>x!==u); saveData(state.data); render(); }}); td.appendChild(del); tbody.appendChild(tr); });
-      panel.appendChild(table);
-      // create form
-      const formCard = el('div',{className:'card',id:'user-form',style:'display:none;margin-top:10px'});
-      formCard.innerHTML = `<h4 id="user-form-title">Create User</h4>
-        <form id="form-user">
-          <label>Email <input id="u-email" type="email" required/></label>
-          <label>First name <input id="u-first" required/></label>
-          <label>Last name <input id="u-last" required/></label>
-          <label>Password <input id="u-pass" required/></label>
-          <label>Role:
-            <select id="u-role"><option value="staff">Staff</option><option value="admin">Admin</option></select>
-          </label>
-          <label>Expiry date (optional) <input id="u-expiry" type="date"/></label>
-          <div class="row"><button class="btn primary" type="submit">Save</button><button id="cancel-user" type="button" class="btn">Cancel</button></div>
-        </form>`;
-      panel.appendChild(formCard);
-      container.appendChild(panel);
-      addBtn.addEventListener('click',()=>{ document.getElementById('user-form').style.display='block'; });
-      const form = panel.querySelector('#form-user');
-      form.addEventListener('submit',ev=>{ ev.preventDefault(); const u={email:form.querySelector('#u-email').value.trim().toLowerCase(),first:form.querySelector('#u-first').value,last:form.querySelector('#u-last').value,password:form.querySelector('#u-pass').value,role:form.querySelector('#u-role').value,expires:form.querySelector('#u-expiry').value||null}; if(state.data.users.find(x=>x.email===u.email)){alert('User exists'); return} state.data.users.push(u); saveData(state.data); alert('User created'); render(); });
-      panel.querySelector('#cancel-user').addEventListener('click',()=>{ document.getElementById('user-form').style.display='none'; });
-    }
+            const gstAmount = useMemo(() => {
+                return Number((subTotal * (gstRate / 100)).toFixed(2));
+            }, [subTotal, gstRate]);
 
-    // Billing view
-    function renderBilling(container){
-      const panel = el('div',{className:'panel card'});
-      panel.appendChild(el('h3',{},['Billing']));
-      const row = el('div',{className:'row small'});
-      row.innerHTML = `<label>Customer name <input id="bill-customer" /></label><label>GST % <input id="bill-gst" type="number" value="18" /></label><label>Discount (₹)<input id="bill-discount" type="number" value="0" /></label>`;
-      panel.appendChild(row);
-      const searchRow = el('div',{className:'row'});
-      searchRow.innerHTML = `<input id="search-product" placeholder="Search product by name or SKU or barcode" /><button id="scan-barcode" class="btn">Scan barcode</button>`;
-      panel.appendChild(searchRow);
-      const table = el('table',{className:'table',id:'cart-table'});
-      table.innerHTML = `<thead><tr><th>SKU</th><th>Name</th><th>Price</th><th>Qty</th><th>Line</th><th>Action</th></tr></thead><tbody></tbody>`;
-      const tbody = table.querySelector('tbody');
-      panel.appendChild(table);
-      const totals = el('div',{className:'totals'});
-      totals.innerHTML = `<div>Subtotal: <span id="sub-total">0.00</span></div><div>GST: <span id="gst-amt">0.00</span></div><div>Discount: <span id="disc-amt">0.00</span></div><div class="big">Total: <span id="total-amt">0.00</span></div>`;
-      panel.appendChild(totals);
-      const actions = el('div',{className:'row'});
-      const final = el('button',{className:'btn primary',id:'finalise-bill'},['Complete Sale']);
-      const printBtn = el('button',{className:'btn',id:'print-bill'},['Print']);
-      const clearBtn = el('button',{className:'btn',id:'clear-cart'},['Clear']);
-      actions.appendChild(final); actions.appendChild(printBtn); actions.appendChild(clearBtn);
-      panel.appendChild(actions);
-      container.appendChild(panel);
+            const totalAmount = useMemo(() => {
+                const t = subTotal + gstAmount - discount;
+                return t > 0 ? Number(t.toFixed(2)) : 0;
+            }, [subTotal, gstAmount, discount]);
 
-      // cart state
-      const cart = [];
-      function redrawCart(){ tbody.innerHTML=''; let subtotal=0; cart.forEach((c,idx)=>{ const tr=el('tr'); const line=(c.price*c.qty); subtotal+=line; tr.innerHTML=`<td>${c.sku}</td><td>${c.name}</td><td>${c.price}</td><td><input type="number" value="${c.qty}" min="1" data-idx="${idx}" style="width:70px"/></td><td>${line.toFixed(2)}</td><td></td>`; const td = tr.querySelector('td:last-child'); const rem=el('button',{className:'btn'},['Remove']); rem.addEventListener('click',()=>{ cart.splice(idx,1); redrawCart(); }); td.appendChild(rem); tbody.appendChild(tr); });
-        const gst = subtotal * (Number($('#bill-gst')?.value||18)/100);
-        const disc = Number($('#bill-discount')?.value||0);
-        const total = subtotal + gst - disc;
-        $('#sub-total') ? $('#sub-total').innerText = subtotal.toFixed(2) : null;
-        $('#gst-amt') ? $('#gst-amt').innerText = gst.toFixed(2) : null;
-        $('#disc-amt') ? $('#disc-amt').innerText = disc.toFixed(2) : null;
-        $('#total-amt') ? $('#total-amt').innerText = total.toFixed(2) : null;
-      }
+            const addToCart = (product) => {
+                if (product.quantity <= 0) {
+                    alert("Product out of stock");
+                    return;
+                }
 
-      // product search handler
-      const search = panel.querySelector('#search-product');
-      search.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); const q = search.value.trim().toLowerCase(); if(!q) return; const p = state.data.products.find(x=> (x.sku&&x.sku.toLowerCase()===q) || (x.barcode&&x.barcode.toLowerCase()===q) || (x.name&&x.name.toLowerCase().includes(q)) ); if(!p){alert('Product not found');return} cart.push({sku:p.sku,name:p.name,price:Number(p.price)||0,qty:1}); redrawCart(); search.value=''; } });
+                setCart(prev => {
+                    const existing = prev.find(item => item.sku === product.sku);
+                    if (existing) {
+                        if (existing.cartQty >= product.quantity) {
+                            alert("Not enough stock available");
+                            return prev;
+                        }
+                        return prev.map(item => 
+                            item.sku === product.sku 
+                                ? { ...item, cartQty: item.cartQty + 1, lineTotal: (item.cartQty + 1) * item.price }
+                                : item
+                        );
+                    }
+                    return [...prev, { ...product, cartQty: 1, lineTotal: product.price }];
+                });
+                setSearchQuery(''); 
+                barcodeInputRef.current?.focus();
+            };
 
-      final.addEventListener('click',()=>{ if(cart.length===0){alert('Cart empty');return} const sale={id:Date.now(),customer:panel.querySelector('#bill-customer').value,items:cart.slice(),gst:Number(panel.querySelector('#bill-gst').value||18),discount:Number(panel.querySelector('#bill-discount').value||0),total:Number($('#total-amt').innerText)||0,date:new Date().toISOString()}; state.data.sales.push(sale); // reduce stock
-        cart.forEach(ci=>{ const prod = state.data.products.find(p=>p.sku===ci.sku); if(prod) prod.quantity = Math.max(0,(Number(prod.quantity)-Number(ci.qty))); });
-        saveData(state.data); alert('Sale recorded'); cart.length=0; redrawCart(); render(); });
+            const removeFromCart = (sku) => {
+                setCart(prev => prev.filter(item => item.sku !== sku));
+            };
 
-      printBtn.addEventListener('click',()=>{ window.print(); });
-      clearBtn.addEventListener('click',()=>{ if(confirm('Clear cart?')){ cart.length=0; redrawCart(); } });
+            const updateQty = (sku, delta) => {
+                setCart(prev => prev.map(item => {
+                    if (item.sku === sku) {
+                        const newQty = item.cartQty + delta;
+                        if (newQty < 1) return item;
+                        if (newQty > item.quantity) {
+                            alert("Max stock reached");
+                            return item;
+                        }
+                        return { ...item, cartQty: newQty, lineTotal: newQty * item.price };
+                    }
+                    return item;
+                }));
+            };
 
-      // listen to gst/discount change
-      panel.querySelector('#bill-gst').addEventListener('change',redrawCart);
-      panel.querySelector('#bill-discount').addEventListener('change',redrawCart);
-    }
+            const handleSearch = (e) => {
+                e.preventDefault();
+                const term = searchQuery.toLowerCase();
+                const match = products.find(p => 
+                    p.barcode === term || 
+                    p.sku.toLowerCase() === term || 
+                    p.name.toLowerCase() === term
+                );
 
-    // Reports view
-    function renderReports(container){
-      const panel = el('div',{className:'panel card'});
-      panel.appendChild(el('h3',{},['Reports']));
-      const area = el('div',{id:'reports-area'});
-      if(state.data.sales.length===0) area.appendChild(el('div',{className:'muted'},['No sales yet.']));
-      else{
-        const table = el('table'); table.innerHTML='<thead><tr><th>ID</th><th>Date</th><th>Customer</th><th>Total</th></tr></thead><tbody></tbody>';
-        const tb=table.querySelector('tbody'); state.data.sales.forEach(s=>{ const tr=el('tr'); tr.innerHTML=`<td>${s.id}</td><td>${new Date(s.date).toLocaleString()}</td><td>${s.customer||''}</td><td>${s.total}</td>`; tb.appendChild(tr); }); area.appendChild(table);
-      }
-      const exportBtn = el('button',{className:'btn',id:'export-sales'},['Export sales JSON']);
-      exportBtn.addEventListener('click',()=>{ const blob=new Blob([JSON.stringify(state.data.sales,null,2)],{type:'application/json'}); const u=URL.createObjectURL(blob); const a=el('a',{href:u,download:'sales.json'}); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(u);} );
-      panel.appendChild(area); panel.appendChild(exportBtn); container.appendChild(panel);
-    }
+                if (match) {
+                    addToCart(match);
+                } else {
+                    const partial = products.filter(p => p.name.toLowerCase().includes(term));
+                    if (partial.length === 1) {
+                        addToCart(partial[0]);
+                    }
+                }
+            };
 
-    // initial render
-    render();
-  })();
-  </script>
+            const handleApplyDiscount = () => {
+                const val = parseFloat(discountInput);
+                if (!isNaN(val) && val >= 0) {
+                    setDiscount(val);
+                } else {
+                    setDiscount(0);
+                    setDiscountInput('');
+                }
+            };
 
-  <footer>Software owned by — Karthick Subramanian</footer>
+            const handleDiscountKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    handleApplyDiscount();
+                }
+            };
+
+            const completeSale = () => {
+                if (cart.length === 0) return;
+
+                const sale = {
+                    id: Date.now().toString(),
+                    date: new Date().toISOString(),
+                    cashierName: `${currentUser.firstName} ${currentUser.lastName}`,
+                    customerName: customerName || 'Walk-in',
+                    items: cart,
+                    subTotal,
+                    gstRate,
+                    gstAmount,
+                    discount,
+                    totalAmount
+                };
+
+                DataService.saveSale(sale);
+                setLastSale(sale);
+                setShowReceipt(true);
+                
+                setCart([]);
+                setCustomerName('');
+                setDiscount(0);
+                setDiscountInput('');
+                setProducts(DataService.getProducts()); 
+            };
+
+            const filteredProducts = useMemo(() => {
+                if (!searchQuery) return [];
+                return products.filter(p => 
+                    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                    p.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    p.barcode.includes(searchQuery)
+                ).slice(0, 5);
+            }, [products, searchQuery]);
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-100px)]">
+                    {/* Left: Cart & Billing */}
+                    <div className="lg:col-span-2 flex flex-col bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                            <h2 className="font-bold text-lg text-slate-800 flex items-center">
+                                <ShoppingCart className="w-5 h-5 mr-2 text-primary" />
+                                Current Cart
+                            </h2>
+                            <div className="flex items-center space-x-2">
+                                <input 
+                                    className="border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none"
+                                    placeholder="Customer Name"
+                                    value={customerName}
+                                    onChange={(e) => setCustomerName(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Cart Items */}
+                        <div className="flex-1 overflow-auto p-4">
+                            {cart.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                                    <ShoppingCart className="w-16 h-16 mb-4 opacity-20" />
+                                    <p>Cart is empty. Scan items or search.</p>
+                                </div>
+                            ) : (
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="text-slate-500 text-sm border-b border-slate-200">
+                                            <th className="py-3 font-medium">Item</th>
+                                            <th className="py-3 font-medium text-right">Price</th>
+                                            <th className="py-3 font-medium text-center">Qty</th>
+                                            <th className="py-3 font-medium text-right">Total</th>
+                                            <th className="py-3 font-medium text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {cart.map(item => (
+                                            <tr key={item.sku} className="border-b border-slate-50 hover:bg-slate-50">
+                                                <td className="py-3">
+                                                    <div className="font-medium text-slate-800">{item.name}</div>
+                                                    <div className="text-xs text-slate-400">{item.sku}</div>
+                                                </td>
+                                                <td className="py-3 text-right">₹{item.price.toFixed(2)}</td>
+                                                <td className="py-3">
+                                                    <div className="flex items-center justify-center space-x-2">
+                                                        <button onClick={() => updateQty(item.sku, -1)} className="p-1 hover:bg-slate-200 rounded"><Minus size={14}/></button>
+                                                        <span className="w-8 text-center font-medium">{item.cartQty}</span>
+                                                        <button onClick={() => updateQty(item.sku, 1)} className="p-1 hover:bg-slate-200 rounded"><Plus size={14}/></button>
+                                                    </div>
+                                                </td>
+                                                <td className="py-3 text-right font-medium">₹{item.lineTotal.toFixed(2)}</td>
+                                                <td className="py-3 text-center">
+                                                    <button onClick={() => removeFromCart(item.sku)} className="text-danger hover:text-red-700"><Trash2 size={18}/></button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+
+                        {/* Totals Section */}
+                        <div className="p-6 bg-slate-50 border-t border-slate-200">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 uppercase mb-1">GST %</label>
+                                    <input 
+                                        type="number" 
+                                        value={gstRate}
+                                        onChange={(e) => setGstRate(Number(e.target.value))}
+                                        className="w-full border border-slate-300 rounded p-2"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Discount (₹)</label>
+                                    <div className="flex space-x-2">
+                                        <input 
+                                            type="number" 
+                                            value={discountInput}
+                                            onChange={(e) => setDiscountInput(e.target.value)}
+                                            onKeyDown={handleDiscountKeyDown}
+                                            className="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-primary outline-none"
+                                            min="0"
+                                            placeholder="0"
+                                        />
+                                        <button 
+                                            type="button"
+                                            onClick={handleApplyDiscount}
+                                            className="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded text-xs font-bold whitespace-nowrap transition-colors"
+                                        >
+                                            Apply Discount
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col space-y-2 text-right text-sm">
+                                <div className="flex justify-between text-slate-500"><span>Subtotal</span> <span>₹{subTotal.toFixed(2)}</span></div>
+                                <div className="flex justify-between text-slate-500"><span>GST ({gstRate}%)</span> <span>₹{gstAmount.toFixed(2)}</span></div>
+                                <div className="flex justify-between text-green-600"><span>Discount</span> <span>-₹{discount.toFixed(2)}</span></div>
+                                <div className="flex justify-between text-2xl font-bold text-slate-900 mt-2 pt-2 border-t border-slate-200">
+                                    <span>Total</span>
+                                    <span>₹{totalAmount.toFixed(2)}</span>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex space-x-4">
+                                <button 
+                                    onClick={() => { setCart([]); setDiscount(0); setDiscountInput(''); }}
+                                    className="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium transition-colors"
+                                >
+                                    Clear Cart
+                                </button>
+                                <button 
+                                    onClick={completeSale}
+                                    disabled={cart.length === 0}
+                                    className={`flex-1 py-3 rounded-lg font-medium transition-colors flex items-center justify-center ${cart.length === 0 ? 'bg-slate-300 cursor-not-allowed text-slate-500' : 'bg-primary hover:bg-blue-700 text-white'}`}
+                                >
+                                    <CheckCircle className="mr-2 h-5 w-5" />
+                                    Complete Sale
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right: Product Search */}
+                    <div className="bg-white rounded-xl shadow-sm p-4 flex flex-col">
+                        <h3 className="font-bold text-slate-800 mb-4">Find Products</h3>
+                        <form onSubmit={handleSearch} className="relative mb-4">
+                            <Search className="absolute left-3 top-3 text-slate-400 w-5 h-5" />
+                            <input
+                                ref={barcodeInputRef}
+                                autoFocus
+                                className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                                placeholder="Scan barcode or search name..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </form>
+
+                        <div className="flex-1 overflow-auto">
+                            <div className="space-y-2">
+                                {searchQuery && filteredProducts.length === 0 && (
+                                    <div className="text-center p-4 text-slate-500">No products found.</div>
+                                )}
+                                {filteredProducts.map(p => (
+                                    <div 
+                                        key={p.sku} 
+                                        onClick={() => addToCart(p)}
+                                        className="p-3 border border-slate-200 rounded-lg hover:border-primary hover:bg-blue-50 cursor-pointer transition-all group"
+                                    >
+                                        <div className="flex justify-between items-center">
+                                            <div className="font-medium text-slate-800">{p.name}</div>
+                                            <div className="font-bold text-primary">₹{p.price}</div>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-slate-500 mt-1">
+                                            <span>SKU: {p.sku}</span>
+                                            <span className={p.quantity < 5 ? 'text-danger font-bold' : ''}>Stock: {p.quantity}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Receipt Modal */}
+                    {showReceipt && lastSale && (
+                        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                            <div className="bg-white w-full max-w-md p-8 rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
+                                <div id="printable-receipt" className="font-mono text-sm">
+                                    <div className="text-center mb-4 border-b border-dashed border-gray-300 pb-4">
+                                        <h2 className="text-xl font-bold">Bill 24*7 Store</h2>
+                                        <p>123 Market Street, City</p>
+                                        <p>Tel: +91 98765 43210</p>
+                                    </div>
+                                    <div className="mb-4">
+                                        <div className="flex justify-between"><span>Date:</span> <span>{new Date(lastSale.date).toLocaleDateString()}</span></div>
+                                        <div className="flex justify-between"><span>Time:</span> <span>{new Date(lastSale.date).toLocaleTimeString()}</span></div>
+                                        <div className="flex justify-between"><span>Bill #:</span> <span>{lastSale.id.slice(-6)}</span></div>
+                                        <div className="flex justify-between"><span>Cashier:</span> <span>{lastSale.cashierName}</span></div>
+                                        <div className="flex justify-between"><span>Customer:</span> <span>{lastSale.customerName}</span></div>
+                                    </div>
+                                    <table className="w-full mb-4">
+                                        <thead>
+                                            <tr className="border-b border-dashed border-gray-300">
+                                                <th className="text-left py-1">Item</th>
+                                                <th className="text-center py-1">Qty</th>
+                                                <th className="text-right py-1">Amt</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {lastSale.items.map((item, idx) => (
+                                                <tr key={idx}>
+                                                    <td className="py-1">{item.name}</td>
+                                                    <td className="text-center py-1">{item.cartQty}</td>
+                                                    <td className="text-right py-1">{item.lineTotal.toFixed(2)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    <div className="border-t border-dashed border-gray-300 pt-2 space-y-1">
+                                        <div className="flex justify-between"><span>Subtotal</span> <span>{lastSale.subTotal.toFixed(2)}</span></div>
+                                        <div className="flex justify-between"><span>GST ({lastSale.gstRate}%)</span> <span>{lastSale.gstAmount.toFixed(2)}</span></div>
+                                        {lastSale.discount > 0 && (
+                                            <div className="flex justify-between"><span>Discount</span> <span>-{lastSale.discount.toFixed(2)}</span></div>
+                                        )}
+                                        <div className="flex justify-between font-bold text-lg mt-2 border-t border-gray-800 pt-2">
+                                            <span>TOTAL</span> <span>₹{lastSale.totalAmount.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                    <div className="text-center mt-6 text-xs">
+                                        <p>Thank you for shopping!</p>
+                                        <p>Visit Again</p>
+                                    </div>
+                                    <div className="text-center mt-4 text-[10px] text-slate-400">
+                                        Software Owned by - Karthick Subramanian
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 flex gap-3 no-print">
+                                    <button 
+                                        onClick={() => window.print()} 
+                                        className="flex-1 bg-slate-800 text-white py-2 rounded hover:bg-slate-700 flex items-center justify-center"
+                                    >
+                                        <Printer className="w-4 h-4 mr-2"/> Print
+                                    </button>
+                                    <button 
+                                        onClick={() => setShowReceipt(false)} 
+                                        className="flex-1 bg-slate-200 text-slate-800 py-2 rounded hover:bg-slate-300"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const ProductManager = () => {
+            const [products, setProducts] = useState([]);
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [editingProduct, setEditingProduct] = useState(null);
+
+            const [formData, setFormData] = useState({
+                sku: '', name: '', price: 0, quantity: 0, barcode: ''
+            });
+
+            useEffect(() => {
+                loadProducts();
+            }, []);
+
+            const loadProducts = () => {
+                setProducts(DataService.getProducts());
+            };
+
+            const handleEdit = (p) => {
+                setEditingProduct(p);
+                setFormData(p);
+                setIsModalOpen(true);
+            };
+
+            const handleDelete = (sku) => {
+                if (confirm('Are you sure?')) {
+                    DataService.deleteProduct(sku);
+                    loadProducts();
+                }
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                DataService.saveProduct(formData);
+                setIsModalOpen(false);
+                setEditingProduct(null);
+                setFormData({ sku: '', name: '', price: 0, quantity: 0, barcode: '' });
+                loadProducts();
+            };
+
+            const handleCSVUpload = (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const text = evt.target?.result;
+                    const lines = text.split('\n');
+                    const startIndex = lines[0].toLowerCase().includes('sku') ? 1 : 0;
+                    
+                    const newProducts = [];
+                    for (let i = startIndex; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+                        const cols = line.split(',');
+                        if (cols.length >= 4) {
+                            newProducts.push({
+                                sku: cols[0].trim(),
+                                name: cols[1].trim(),
+                                price: parseFloat(cols[2]),
+                                quantity: parseInt(cols[3]),
+                                barcode: cols[4]?.trim() || ''
+                            });
+                        }
+                    }
+                    
+                    if (newProducts.length > 0) {
+                        DataService.importProducts(newProducts);
+                        loadProducts();
+                        alert(`Imported ${newProducts.length} products.`);
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            };
+
+            const downloadJSON = () => {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(products, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", "products.json");
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-2xl font-bold text-slate-800">Product Inventory</h2>
+                        <button 
+                            onClick={() => { setEditingProduct(null); setFormData({sku: '', name: '', price: 0, quantity: 0, barcode: ''}); setIsModalOpen(true); }}
+                            className="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center"
+                        >
+                            <Plus className="w-4 h-4 mr-2" /> Add Product
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+                            <h4 className="font-medium mb-2 text-slate-700">Import CSV</h4>
+                            <p className="text-xs text-slate-500 mb-2">Format: sku,name,price,qty,barcode</p>
+                            <div className="flex items-center">
+                                <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded text-sm text-slate-700 flex items-center">
+                                    <Upload className="w-4 h-4 mr-2"/> Select File
+                                    <input type="file" accept=".csv" className="hidden" onChange={handleCSVUpload} />
+                                </label>
+                            </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex items-center justify-between">
+                            <div>
+                                <h4 className="font-medium text-slate-700">Export Data</h4>
+                                <p className="text-xs text-slate-500">Backup product catalog</p>
+                            </div>
+                            <button onClick={downloadJSON} className="p-2 text-primary hover:bg-blue-50 rounded"><Download/></button>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-medium border-b border-slate-200">
+                                <tr>
+                                    <th className="px-6 py-3">SKU</th>
+                                    <th className="px-6 py-3">Name</th>
+                                    <th className="px-6 py-3 text-right">Price</th>
+                                    <th className="px-6 py-3 text-center">Stock</th>
+                                    <th className="px-6 py-3">Barcode</th>
+                                    <th className="px-6 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200">
+                                {products.map(p => (
+                                    <tr key={p.sku} className="hover:bg-slate-50">
+                                        <td className="px-6 py-4 font-medium text-slate-900">{p.sku}</td>
+                                        <td className="px-6 py-4 text-slate-700">{p.name}</td>
+                                        <td className="px-6 py-4 text-right text-slate-700">₹{p.price.toFixed(2)}</td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${p.quantity < 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                                                {p.quantity}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-500 text-sm font-mono">{p.barcode}</td>
+                                        <td className="px-6 py-4 text-right space-x-2">
+                                            <button onClick={() => handleEdit(p)} className="text-blue-600 hover:text-blue-900"><Edit size={18}/></button>
+                                            <button onClick={() => handleDelete(p.sku)} className="text-red-600 hover:text-red-900"><Trash2 size={18}/></button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {products.length === 0 && (
+                                    <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">No products found. Add or import some.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {isModalOpen && (
+                        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                            <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
+                                <form onSubmit={handleSubmit}>
+                                    <div className="p-6 border-b border-slate-100">
+                                        <h3 className="text-xl font-bold">{editingProduct ? 'Edit Product' : 'Add Product'}</h3>
+                                    </div>
+                                    <div className="p-6 space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">SKU (Unique)</label>
+                                            <input required className="w-full border p-2 rounded" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} disabled={!!editingProduct} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                                            <input required className="w-full border p-2 rounded" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1">Price</label>
+                                                <input required type="number" step="0.01" className="w-full border p-2 rounded" value={formData.price} onChange={e => setFormData({...formData, price: parseFloat(e.target.value)})} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1">Quantity</label>
+                                                <input required type="number" className="w-full border p-2 rounded" value={formData.quantity} onChange={e => setFormData({...formData, quantity: parseInt(e.target.value)})} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Barcode</label>
+                                            <input className="w-full border p-2 rounded" value={formData.barcode} onChange={e => setFormData({...formData, barcode: e.target.value})} />
+                                        </div>
+                                    </div>
+                                    <div className="p-6 border-t border-slate-100 flex justify-end space-x-3">
+                                        <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded">Cancel</button>
+                                        <button type="submit" className="px-4 py-2 bg-primary text-white rounded hover:bg-blue-700">Save Product</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const Reports = () => {
+            const sales = DataService.getSales();
+
+            const stats = useMemo(() => {
+                const totalRevenue = sales.reduce((acc, s) => acc + s.totalAmount, 0);
+                const totalTxns = sales.length;
+                const totalItemsSold = sales.reduce((acc, s) => acc + s.items.reduce((iAcc, i) => iAcc + i.cartQty, 0), 0);
+                return { totalRevenue, totalTxns, totalItemsSold };
+            }, [sales]);
+
+            const dailySalesData = useMemo(() => {
+                const map = new Map();
+                sales.forEach(s => {
+                    const date = new Date(s.date).toLocaleDateString();
+                    map.set(date, (map.get(date) || 0) + s.totalAmount);
+                });
+                return Array.from(map.entries()).map(([date, amount]) => ({ date, amount }));
+            }, [sales]);
+
+            return (
+                <div className="space-y-6">
+                    <h2 className="text-2xl font-bold text-slate-800">Sales Reports</h2>
+
+                    {/* Stat Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <div className="text-sm text-slate-500 uppercase font-bold">Total Revenue</div>
+                            <div className="text-3xl font-bold text-primary mt-2">₹{stats.totalRevenue.toFixed(2)}</div>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <div className="text-sm text-slate-500 uppercase font-bold">Total Transactions</div>
+                            <div className="text-3xl font-bold text-slate-800 mt-2">{stats.totalTxns}</div>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <div className="text-sm text-slate-500 uppercase font-bold">Items Sold</div>
+                            <div className="text-3xl font-bold text-green-600 mt-2">{stats.totalItemsSold}</div>
+                        </div>
+                    </div>
+
+                    {/* Charts */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 h-96">
+                        <h3 className="font-bold text-slate-700 mb-6">Daily Revenue</h3>
+                        {dailySalesData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={dailySalesData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0"/>
+                                    <XAxis dataKey="date" stroke="#64748b" fontSize={12}/>
+                                    <YAxis stroke="#64748b" fontSize={12}/>
+                                    <Tooltip 
+                                        contentStyle={{backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0'}}
+                                        itemStyle={{color: '#2563eb'}}
+                                    />
+                                    <Bar dataKey="amount" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-slate-400">No sales data yet.</div>
+                        )}
+                    </div>
+
+                    <div className="mt-6">
+                        <h3 className="font-bold text-slate-800 mb-4">Recent Transactions</h3>
+                        <div className="bg-white rounded-lg shadow overflow-hidden">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-slate-50 text-slate-500 font-medium border-b">
+                                    <tr>
+                                        <th className="px-6 py-3">ID</th>
+                                        <th className="px-6 py-3">Date</th>
+                                        <th className="px-6 py-3">Customer</th>
+                                        <th className="px-6 py-3 text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-200">
+                                    {sales.slice().reverse().slice(0, 10).map(s => (
+                                        <tr key={s.id}>
+                                            <td className="px-6 py-3 text-slate-500 font-mono">{s.id.slice(-6)}</td>
+                                            <td className="px-6 py-3">{new Date(s.date).toLocaleString()}</td>
+                                            <td className="px-6 py-3">{s.customerName}</td>
+                                            <td className="px-6 py-3 text-right font-medium">₹{s.totalAmount.toFixed(2)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const UserManager = () => {
+            const [users, setUsers] = useState(DataService.getUsers());
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [formData, setFormData] = useState({
+                firstName: '', lastName: '', email: '', password: '', role: UserRole.STAFF
+            });
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                const newUser = {
+                    id: Date.now().toString(),
+                    ...formData
+                };
+                DataService.saveUser(newUser);
+                setUsers(DataService.getUsers());
+                setIsModalOpen(false);
+                setFormData({ firstName: '', lastName: '', email: '', password: '', role: UserRole.STAFF });
+            };
+
+            const handleDelete = (email) => {
+                if (email === 'admin@nammo') {
+                    alert("Cannot delete root admin");
+                    return;
+                }
+                if (confirm("Remove this user?")) {
+                    DataService.deleteUser(email);
+                    setUsers(DataService.getUsers());
+                }
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-2xl font-bold text-slate-800">User Management</h2>
+                        <button onClick={() => setIsModalOpen(true)} className="bg-primary text-white px-4 py-2 rounded flex items-center hover:bg-blue-700">
+                            <UserPlus className="w-4 h-4 mr-2"/> Add User
+                        </button>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-medium border-b">
+                                <tr>
+                                    <th className="px-6 py-3">Name</th>
+                                    <th className="px-6 py-3">Email</th>
+                                    <th className="px-6 py-3">Role</th>
+                                    <th className="px-6 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200">
+                                {users.map(u => (
+                                    <tr key={u.id} className="hover:bg-slate-50">
+                                        <td className="px-6 py-4 font-medium text-slate-900">{u.firstName} {u.lastName}</td>
+                                        <td className="px-6 py-4 text-slate-600">{u.email}</td>
+                                        <td className="px-6 py-4"><span className="bg-slate-100 px-2 py-1 rounded text-xs uppercase font-bold text-slate-600">{u.role}</span></td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button onClick={() => handleDelete(u.email)} className="text-red-500 hover:text-red-700 disabled:opacity-50" disabled={u.email === 'admin@nammo'}>
+                                                <Trash2 size={18}/>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {isModalOpen && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                            <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
+                                <form onSubmit={handleSubmit}>
+                                    <div className="p-6 border-b">
+                                        <h3 className="font-bold text-lg">Create New User</h3>
+                                    </div>
+                                    <div className="p-6 space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm text-slate-600 mb-1">First Name</label>
+                                                <input required className="w-full border rounded p-2" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm text-slate-600 mb-1">Last Name</label>
+                                                <input required className="w-full border rounded p-2" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-slate-600 mb-1">Email</label>
+                                            <input required type="email" className="w-full border rounded p-2" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-slate-600 mb-1">Password</label>
+                                            <input required type="password" className="w-full border rounded p-2" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-slate-600 mb-1">Role</label>
+                                            <select className="w-full border rounded p-2" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
+                                                <option value={UserRole.STAFF}>Staff</option>
+                                                <option value={UserRole.ADMIN}>Admin</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="p-6 border-t flex justify-end space-x-3">
+                                        <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded">Cancel</button>
+                                        <button type="submit" className="px-4 py-2 bg-primary text-white rounded hover:bg-blue-700">Create</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const Login = ({ onLogin }) => {
+            const [email, setEmail] = useState('');
+            const [pass, setPass] = useState('');
+            const [error, setError] = useState('');
+            const [view, setView] = useState('login');
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                const user = DataService.login(email, pass);
+                if (user) {
+                    onLogin(user);
+                } else {
+                    setError('Invalid credentials');
+                }
+            };
+
+            const handleSignup = (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const newUser = {
+                    id: Date.now().toString(),
+                    email: form.elements['su-email'].value,
+                    firstName: form.elements['su-first'].value,
+                    lastName: form.elements['su-last'].value,
+                    password: form.elements['su-pass'].value,
+                    role: UserRole.STAFF 
+                };
+                DataService.saveUser(newUser);
+                DataService.login(newUser.email, newUser.password);
+                onLogin(newUser);
+            };
+
+            if (view === 'signup') {
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 p-4">
+                        <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md mb-6">
+                            <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Join Bill 24*7</h2>
+                            <form onSubmit={handleSignup} className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <input name="su-first" required placeholder="First Name" className="w-full border p-3 rounded focus:ring-2 focus:ring-primary outline-none" />
+                                    <input name="su-last" required placeholder="Last Name" className="w-full border p-3 rounded focus:ring-2 focus:ring-primary outline-none" />
+                                </div>
+                                <input name="su-email" type="email" required placeholder="Email Address" className="w-full border p-3 rounded focus:ring-2 focus:ring-primary outline-none" />
+                                <input name="su-pass" type="password" required placeholder="Password" className="w-full border p-3 rounded focus:ring-2 focus:ring-primary outline-none" />
+                                <button type="submit" className="w-full bg-primary text-white py-3 rounded font-bold hover:bg-blue-700 transition">Create Account</button>
+                                <div className="text-center">
+                                    <button type="button" onClick={() => setView('login')} className="text-sm text-slate-500 hover:text-primary">Already have an account? Login</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div className="text-slate-400 text-sm">Software Owned by - Karthick Subramanian</div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 p-4">
+                    <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md mb-6">
+                        <div className="text-center mb-8">
+                            <div className="inline-block p-3 bg-primary text-white rounded-xl text-2xl font-bold mb-2">B</div>
+                            <h2 className="text-2xl font-bold text-slate-800">Welcome Back</h2>
+                            <p className="text-slate-500">Sign in to access your POS</p>
+                        </div>
+                        
+                        {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
+
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-600 mb-1">Email</label>
+                                <input 
+                                    type="email" 
+                                    required 
+                                    className="w-full border border-slate-300 p-3 rounded focus:ring-2 focus:ring-primary outline-none transition"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-600 mb-1">Password</label>
+                                <input 
+                                    type="password" 
+                                    required 
+                                    className="w-full border border-slate-300 p-3 rounded focus:ring-2 focus:ring-primary outline-none transition"
+                                    value={pass}
+                                    onChange={(e) => setPass(e.target.value)}
+                                />
+                            </div>
+                            <button type="submit" className="w-full bg-primary text-white py-3 rounded font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/30">
+                                Login
+                            </button>
+                        </form>
+
+                        <div className="mt-6 pt-6 border-t border-slate-100 text-center space-y-2">
+                            <p className="text-sm text-slate-400">Default Admin: <b>admin@nammo</b> / <b>admin123</b></p>
+                            <button onClick={() => setView('signup')} className="text-sm text-primary font-medium hover:underline">Create new account</button>
+                        </div>
+                    </div>
+                    <div className="text-slate-400 text-sm">Software Owned by - Karthick Subramanian</div>
+                </div>
+            );
+        };
+
+        const Dashboard = ({ onNavigate, user }) => {
+            const NavCard = ({ title, icon: Icon, desc, onClick, color }) => (
+                <div 
+                    onClick={onClick}
+                    className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group"
+                >
+                    <div className={`w-12 h-12 ${color} rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                        <Icon className="text-white w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800 mb-1">{title}</h3>
+                    <p className="text-sm text-slate-500">{desc}</p>
+                </div>
+            );
+
+            return (
+                <div className="space-y-8 max-w-5xl mx-auto py-8">
+                    <div className="mb-8">
+                        <h2 className="text-3xl font-bold text-slate-800">Dashboard</h2>
+                        <p className="text-slate-500">Welcome back, {user.firstName}. What would you like to do today?</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <NavCard 
+                            title="Billing & POS" 
+                            icon={ShoppingCart} 
+                            desc="Start a new sale, scan items, and print receipts." 
+                            color="bg-blue-500"
+                            onClick={() => onNavigate('billing')}
+                        />
+                        <NavCard 
+                            title="Product Inventory" 
+                            icon={Package} 
+                            desc="Manage products, stock levels, and pricing." 
+                            color="bg-emerald-500"
+                            onClick={() => onNavigate('products')}
+                        />
+                        <NavCard 
+                            title="Sales Reports" 
+                            icon={BarChart3} 
+                            desc="View daily revenue and transaction history." 
+                            color="bg-purple-500"
+                            onClick={() => onNavigate('reports')}
+                        />
+                        {user.role === UserRole.ADMIN && (
+                            <NavCard 
+                                title="User Management" 
+                                icon={Users} 
+                                desc="Add or remove staff accounts." 
+                                color="bg-orange-500"
+                                onClick={() => onNavigate('users')}
+                            />
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [currentView, setCurrentView] = useState('dashboard');
+
+            useEffect(() => {
+                const savedUser = DataService.getCurrentUser();
+                if (savedUser) {
+                    setUser(savedUser);
+                }
+            }, []);
+
+            const handleLogin = (u) => {
+                setUser(u);
+                setCurrentView('dashboard');
+            };
+
+            const handleLogout = () => {
+                DataService.logout();
+                setUser(null);
+                setCurrentView('login');
+            };
+
+            if (!user) {
+                return <Login onLogin={handleLogin} />;
+            }
+
+            const renderContent = () => {
+                switch (currentView) {
+                    case 'billing':
+                        return <Billing currentUser={user} />;
+                    case 'products':
+                        return <ProductManager />;
+                    case 'users':
+                        return user.role === UserRole.ADMIN ? <UserManager /> : <div className="p-8 text-center text-red-500">Access Denied</div>;
+                    case 'reports':
+                        return <Reports />;
+                    case 'dashboard':
+                    default:
+                        return <Dashboard user={user} onNavigate={setCurrentView} />;
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-50 flex flex-col">
+                    <Navbar user={user} onLogout={handleLogout} onNavigate={setCurrentView} />
+                    <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        {renderContent()}
+                    </main>
+                    <footer className="py-4 text-center text-slate-400 text-sm border-t border-slate-200 bg-white">
+                        Software Owned by - Karthick Subramanian
+                    </footer>
+                </div>
+            );
+        };
+
+        // --- MOUNT ---
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
 </body>
 </html>
-
