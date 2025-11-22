@@ -3,9 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Bill 24x7 (Updated)</title>
+  <title>Bill 24*7(Updated)</title>
   <style>
-    /* Minimal embedded styles so this file runs standalone */
     :root{--accent:#2b7aeb;--muted:#777;--card:#fff;--bg:#f3f6fb}
     html,body{height:100%;margin:0;font-family:Inter,Segoe UI,Roboto,Arial;background:var(--bg);color:#222}
     .nav{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:#fff;border-bottom:1px solid #e6e9ef}
@@ -35,10 +34,10 @@
 <body>
   <div id="app"></div>
 
-  <!-- Templates (single-page app) -->
+  <!-- Templates -->
   <script id="tpl-nav" type="text/template">
     <header class="nav">
-      <div class="brand">Bill 24x7</div>
+      <div class="brand">Bill 24*7</div>
       <div class="nav-right">
         <button id="btn-notifications" class="btn">Notifications <span id="notif-count" class="badge">0</span></button>
         <button id="btn-settings" class="btn">Settings</button>
@@ -49,7 +48,7 @@
   </script>
 
   <script id="tpl-login" type="text/template">
-    <div class="card small" style="max-width:420px;margin:24px auto">
+    <div class="card small" style="max-width:480px;margin:24px auto">
       <h2>Login</h2>
       <form id="form-login">
         <label>Email <input type="email" id="login-email" required /></label>
@@ -58,7 +57,24 @@
           <button class="btn primary" type="submit">Login</button>
           <button id="go-signup" type="button" class="btn">Signup</button>
         </div>
-        <p class="muted">Default admin: <b>admin@nammo</b> / <b>admin123</b></p>
+        <p class="muted">Default admin: <b>admin@karthick</b> / <b>admin123</b></p>
+      </form>
+    </div>
+  </script>
+
+  <script id="tpl-signup" type="text/template">
+    <div class="card small" style="max-width:480px;margin:24px auto">
+      <h2>Signup</h2>
+      <form id="form-signup">
+        <label>Name <input id="su-name" required /></label>
+        <label>Business Name <input id="su-business" /></label>
+        <label>Phone <input id="su-phone" /></label>
+        <label>Email <input id="su-email" type="email" required /></label>
+        <label>Password <input id="su-pass" type="password" required /></label>
+        <div class="row">
+          <button class="btn primary" type="submit">Create account</button>
+          <button id="back-login" type="button" class="btn">Back</button>
+        </div>
       </form>
     </div>
   </script>
@@ -72,6 +88,7 @@
             <button id="open-billing" class="btn full">Open Billing</button>
             <button id="open-products" class="btn full">Products</button>
             <button id="open-users" class="btn full">Users</button>
+            <button id="open-customers" class="btn full">Customers</button>
             <button id="open-reports" class="btn full">Reports</button>
           </div>
         </div>
@@ -98,7 +115,6 @@
       </div>
 
       <div class="right" id="right-panel">
-        <!-- dynamic region: billing/products/users/reports/settings/notifications -->
       </div>
     </div>
   </script>
@@ -154,6 +170,31 @@
           <div class="row">
             <button class="btn primary" type="submit">Save</button>
             <button id="cancel-user" type="button" class="btn">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </script>
+
+  <script id="tpl-customers" type="text/template">
+    <div class="panel card">
+      <h3>Customers</h3>
+      <button id="add-customer-btn" class="btn">Add Customer</button>
+      <table class="table" id="customers-table">
+        <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Location</th><th>Active</th><th>Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+
+      <div id="customer-form" style="display:none" class="card">
+        <h4 id="customer-form-title">Add Customer</h4>
+        <form id="form-customer">
+          <label>Name <input id="c-name" required/></label>
+          <label>Phone <input id="c-phone"/></label>
+          <label>Email <input id="c-email" type="email"/></label>
+          <label>Location <input id="c-location"/></label>
+          <div class="row">
+            <button class="btn primary" type="submit">Save</button>
+            <button id="cancel-customer" type="button" class="btn">Cancel</button>
           </div>
         </form>
       </div>
@@ -270,17 +311,16 @@
   </script>
 
   <script>
-  // Simple SPA renderer + functionality
   (function(){
     const app = document.getElementById('app');
-    const T = tId => document.getElementById(tId).innerHTML;
     const templates = {};
     document.querySelectorAll('script[type="text/template"]').forEach(s=>templates[s.id]=s.innerHTML);
 
     const state = {
-      user: {name:'Admin',email:'admin@nammo',role:'admin'},
+      user: {name:'Guest',email:'',role:'guest'},
       products: JSON.parse(localStorage.getItem('nb_products')||'[]'),
       users: JSON.parse(localStorage.getItem('nb_users')||'[]'),
+      customers: JSON.parse(localStorage.getItem('nb_customers')||'[]'),
       sales: JSON.parse(localStorage.getItem('nb_sales')||'[]'),
       notifications: JSON.parse(localStorage.getItem('nb_notifs')||'[]'),
       settings: JSON.parse(localStorage.getItem('nb_settings')||JSON.stringify({adminEmail:'admin@nammo',adminPass:'admin123',customerFields:{phone:true,email:true,location:true,activeDays:30},business:{location:'',city:'',state:'',pincode:''}}))
@@ -289,6 +329,7 @@
     function saveState(){
       localStorage.setItem('nb_products',JSON.stringify(state.products));
       localStorage.setItem('nb_users',JSON.stringify(state.users));
+      localStorage.setItem('nb_customers',JSON.stringify(state.customers));
       localStorage.setItem('nb_sales',JSON.stringify(state.sales));
       localStorage.setItem('nb_notifs',JSON.stringify(state.notifications));
       localStorage.setItem('nb_settings',JSON.stringify(state.settings));
@@ -302,209 +343,148 @@
     }
 
     function attachNav(){
-      // render nav into top of app area
-      const navHtml = templates['tpl-nav'].replace(/{{userName}}/g,state.user.name).replace(/{{role}}/g,state.user.role);
+      const navHtml = templates['tpl-nav'].replace(/{{userName}}/g,state.user.name||'Guest').replace(/{{role}}/g,state.user.role||'guest');
       app.insertAdjacentHTML('afterbegin',navHtml);
-      document.getElementById('btn-logout').addEventListener('click',()=>{render('tpl-login',{});});
+      document.getElementById('btn-logout').addEventListener('click',()=>{ state.user={name:'Guest',email:'',role:'guest'}; render('tpl-login',{}); });
       document.getElementById('btn-settings').addEventListener('click',()=>openSettings());
       document.getElementById('btn-notifications').addEventListener('click',()=>openNotifications());
       updateNotifCount();
     }
 
-    function updateNotifCount(){
-      const el = document.getElementById('notif-count'); if(el) el.textContent = state.notifications.length||0;
-    }
+    function updateNotifCount(){ const el = document.getElementById('notif-count'); if(el) el.textContent = state.notifications.length||0; }
 
-    // initial show
     render('tpl-login',{});
 
-    // login handlers
+    // Login handler: checks admin credentials or registered users
     document.addEventListener('submit',function(e){
       if(e.target && e.target.id==='form-login'){
         e.preventDefault();
         const email = document.getElementById('login-email').value.trim();
         const pass = document.getElementById('login-password').value.trim();
         const s = state.settings;
+        // check admin first
         if(email===s.adminEmail && pass===s.adminPass){
-          state.user.name = 'Admin'; state.user.email = email; state.user.role='admin';
-          saveState();
-          render('tpl-dashboard',{});
-          attachDashboard();
-          pushNotif('Admin logged in');
-        } else {
-          alert('Invalid credentials');
+          state.user.name='Admin'; state.user.email=email; state.user.role='admin'; saveState(); render('tpl-dashboard',{}); attachDashboard(); pushNotif('Admin logged in'); return;
         }
+        // check registered users
+        const u = state.users.find(x=>x.email===email && x.pass===pass);
+        if(u){ state.user.name = (u.first? u.first+' '+(u.last||'') : (u.name||'User')); state.user.email = u.email; state.user.role = u.role || 'staff'; saveState(); render('tpl-dashboard',{}); attachDashboard(); pushNotif('User logged in: '+u.email); return; }
+        alert('Invalid credentials');
+      }
+      if(e.target && e.target.id==='form-signup'){
+        e.preventDefault();
+        const name = document.getElementById('su-name').value.trim();
+        const business = document.getElementById('su-business').value.trim();
+        const phone = document.getElementById('su-phone').value.trim();
+        const email = document.getElementById('su-email').value.trim();
+        const pass = document.getElementById('su-pass').value;
+        if(state.users.find(x=>x.email===email)){ return alert('Email already registered'); }
+        const user = {email,first:name,last:business,pass,role:'staff'};
+        state.users.push(user); saveState(); alert('Account created. Please login.'); render('tpl-login',{});
+      }
+      if(e.target && e.target.id==='form-product'){
+        // handled in product screen
+      }
+      if(e.target && e.target.id==='form-customer'){
+        e.preventDefault(); const name=document.getElementById('c-name').value.trim(); const phone=document.getElementById('c-phone').value.trim(); const email=document.getElementById('c-email').value.trim(); const loc=document.getElementById('c-location').value.trim();
+        const existing = state.customers.find(c=>c.email===email && email);
+        if(existing){ existing.name=name; existing.phone=phone; existing.location=loc; } else { state.customers.push({name,phone,email,location:loc,created:new Date().toISOString()}); }
+        saveState(); alert('Customer saved'); pushNotif('Customer saved: '+name); openCustomers();
       }
     });
 
     document.addEventListener('click',function(e){
-      if(e.target && e.target.id==='go-signup'){
-        alert('Signup not implemented in demo');
-      }
+      if(e.target && e.target.id==='go-signup'){ render('tpl-signup',{}); }
+      if(e.target && e.target.id==='back-login'){ render('tpl-login',{}); }
     });
 
-    function pushNotif(text){
-      state.notifications.unshift({text,when:new Date().toISOString()}); if(state.notifications.length>50) state.notifications.pop(); saveState(); updateNotifCount();
-    }
+    function pushNotif(text){ state.notifications.unshift({text,when:new Date().toISOString()}); if(state.notifications.length>50) state.notifications.pop(); saveState(); updateNotifCount(); }
 
     function attachDashboard(){
-      // left action buttons
       document.getElementById('open-billing').addEventListener('click',()=>openBilling());
       document.getElementById('open-products').addEventListener('click',()=>openProducts());
       document.getElementById('open-users').addEventListener('click',()=>openUsers());
+      document.getElementById('open-customers').addEventListener('click',()=>openCustomers());
       document.getElementById('open-reports').addEventListener('click',()=>openReports());
 
-      document.getElementById('import-csv').addEventListener('click',()=>{document.getElementById('csv-input').click();});
+      document.getElementById('import-csv').addEventListener('click',()=>{ document.getElementById('csv-input').click(); });
+      document.getElementById('csv-input').addEventListener('change',handleCSVUpload);
+
       document.getElementById('backup-json').addEventListener('click',()=>downloadJSON());
       document.getElementById('restore-json').addEventListener('click',()=>document.getElementById('restore-file').click());
       document.getElementById('export-products').addEventListener('click',()=>downloadProducts());
 
       document.getElementById('restore-file').addEventListener('change',function(ev){
-        const f = ev.target.files[0]; if(!f) return; const reader=new FileReader(); reader.onload = ()=>{try{const obj=JSON.parse(reader.result); if(obj.products) state.products = obj.products; if(obj.users) state.users = obj.users; saveState(); alert('Restored'); pushNotif('Site data restored');}catch(err){alert('Invalid JSON')} }; reader.readAsText(f);
+        const f = ev.target.files[0]; if(!f) return; const reader=new FileReader(); reader.onload = ()=>{try{const obj=JSON.parse(reader.result); if(obj.products) state.products = obj.products; if(obj.users) state.users = obj.users; if(obj.customers) state.customers = obj.customers; saveState(); alert('Restored'); pushNotif('Site data restored');}catch(err){alert('Invalid JSON')} }; reader.readAsText(f);
       });
     }
 
-    function downloadJSON(){
-      const blob = new Blob([JSON.stringify({products:state.products,users:state.users,sales:state.sales,settings:state.settings},null,2)],{type:'application/json'});
-      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='nammo-site-data.json'; a.click(); URL.revokeObjectURL(url);
-    }
-    function downloadProducts(){
-      const blob = new Blob([JSON.stringify(state.products,null,2)],{type:'application/json'});
-      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='products.json'; a.click(); URL.revokeObjectURL(url);
-    }
-
-    // Products screen
-    function openProducts(){
-      document.getElementById('right-panel').innerHTML = templates['tpl-products'];
-      const tbody = document.querySelector('#products-table tbody');
-      function refresh(){tbody.innerHTML = state.products.map(p=>`<tr><td>${p.sku}</td><td>${p.name}</td><td>${p.price}</td><td>${p.quantity}</td><td>${p.barcode||''}</td><td><button data-sku="${p.sku}" class="btn edit">Edit</button> <button data-sku="${p.sku}" class="btn del">Del</button></td></tr>`).join('');}
-      refresh();
-      document.getElementById('add-product-btn').addEventListener('click',()=>{document.getElementById('product-form').style.display='block';document.getElementById('product-form-title').textContent='Add Product';document.getElementById('form-product').dataset.edit='';});
-      document.getElementById('cancel-product').addEventListener('click',()=>{document.getElementById('product-form').style.display='none';});
-
-      document.getElementById('form-product').addEventListener('submit',function(e){e.preventDefault();const sku=document.getElementById('p-sku').value.trim();const name=document.getElementById('p-name').value.trim();const price=Number(document.getElementById('p-price').value||0);const qty=Number(document.getElementById('p-qty').value||0);const barcode=document.getElementById('p-barcode').value.trim();
-        const edit = e.target.dataset.edit;
-        if(edit){
-          const idx = state.products.findIndex(x=>x.sku===edit); if(idx>=0){state.products[idx] = {sku,name,price,quantity:qty,barcode};}
-        } else {
-          state.products.push({sku,name,price,quantity:qty,barcode});
-        }
-        saveState(); refresh(); document.getElementById('product-form').style.display='none'; pushNotif('Products updated');
-      });
-
-      tbody.addEventListener('click',function(ev){
-        if(ev.target.classList.contains('del')){ const sku = ev.target.dataset.sku; state.products = state.products.filter(p=>p.sku!==sku); saveState(); refresh(); pushNotif('Product removed: '+sku);} 
-        if(ev.target.classList.contains('edit')){ const sku = ev.target.dataset.sku; const p = state.products.find(x=>x.sku===sku); if(p){document.getElementById('p-sku').value=p.sku;document.getElementById('p-name').value=p.name;document.getElementById('p-price').value=p.price;document.getElementById('p-qty').value=p.quantity;document.getElementById('p-barcode').value=p.barcode;document.getElementById('form-product').dataset.edit=sku;document.getElementById('product-form').style.display='block'; document.getElementById('product-form-title').textContent='Edit Product';}
-        }
-      });
+    function handleCSVUpload(ev){
+      const f = ev.target.files[0]; if(!f) return alert('No file'); const reader = new FileReader(); reader.onload = ()=>{
+        const txt = reader.result.trim(); if(!txt) return alert('Empty file');
+        // simple CSV parse (no quotes handling) — expects header row
+        const lines = txt.split(/
+?
+/).filter(l=>l.trim()); const headers = lines.shift().split(',').map(h=>h.trim().toLowerCase());
+        const idx = {sku:headers.indexOf('sku'), name:headers.indexOf('name'), price:headers.indexOf('price'), quantity:headers.indexOf('quantity'), barcode:headers.indexOf('barcode')};
+        if(idx.sku<0 || idx.name<0){ return alert('CSV must include sku and name columns'); }
+        const added = [];
+        lines.forEach(l=>{ const cols = l.split(','); const p = {sku:cols[idx.sku]?.trim(), name:cols[idx.name]?.trim(), price: Number(cols[idx.price]||0), quantity: Number(cols[idx.quantity]||0), barcode: cols[idx.barcode]?.trim()}; if(p.sku && p.name){ // replace if exists
+            const existing = state.products.find(x=>x.sku===p.sku);
+            if(existing) Object.assign(existing,p); else state.products.push(p); added.push(p.sku);
+        }});
+        saveState(); pushNotif('CSV import: '+added.length+' products'); alert('Imported '+added.length+' products'); openProducts();
+      }; reader.readAsText(f);
     }
 
-    // Users screen
-    function openUsers(){
-      document.getElementById('right-panel').innerHTML = templates['tpl-users'];
-      const tbody = document.querySelector('#users-table tbody');
-      function refresh(){tbody.innerHTML = state.users.map(u=>`<tr><td>${u.email}</td><td>${u.first} ${u.last}</td><td>${u.role}</td><td>${u.expiry||''}</td><td><button data-email="${u.email}" class="btn del-user">Del</button></td></tr>`).join('');}
-      refresh();
-      document.getElementById('create-user-btn').addEventListener('click',()=>{document.getElementById('user-form').style.display='block';});
-      document.getElementById('cancel-user').addEventListener('click',()=>{document.getElementById('user-form').style.display='none';});
-      document.getElementById('form-user').addEventListener('submit',function(e){e.preventDefault(); const u={email:document.getElementById('u-email').value.trim(),first:document.getElementById('u-first').value.trim(),last:document.getElementById('u-last').value.trim(),pass:document.getElementById('u-pass').value,role:document.getElementById('u-role').value,expiry:document.getElementById('u-expiry').value}; state.users.push(u); saveState(); refresh(); document.getElementById('user-form').style.display='none'; pushNotif('User created: '+u.email);});
-      tbody.addEventListener('click',function(e){ if(e.target.classList.contains('del-user')){state.users = state.users.filter(x=>x.email!==e.target.dataset.email); saveState(); refresh(); pushNotif('User removed: '+e.target.dataset.email);} });
-    }
+    function downloadJSON(){ const blob = new Blob([JSON.stringify({products:state.products,users:state.users,customers:state.customers,sales:state.sales,settings:state.settings},null,2)],{type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='nammo-site-data.json'; a.click(); URL.revokeObjectURL(url); }
+    function downloadProducts(){ const blob = new Blob([JSON.stringify(state.products,null,2)],{type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='products.json'; a.click(); URL.revokeObjectURL(url); }
 
-    // Billing screen
-    function openBilling(){
-      document.getElementById('right-panel').innerHTML = templates['tpl-billing'];
-      const cart = [];
-      const productsIndex = {};
-      state.products.forEach(p=>productsIndex[p.sku]=p);
-      const tbody = document.querySelector('#cart-table tbody');
+    function openProducts(){ document.getElementById('right-panel').innerHTML = templates['tpl-products']; const tbody = document.querySelector('#products-table tbody'); function refresh(){ tbody.innerHTML = state.products.map(p=>`<tr><td>${p.sku}</td><td>${p.name}</td><td>${p.price}</td><td>${p.quantity}</td><td>${p.barcode||''}</td><td><button data-sku="${p.sku}" class="btn edit">Edit</button> <button data-sku="${p.sku}" class="btn del">Del</button></td></tr>`).join(''); }
+      refresh(); document.getElementById('add-product-btn').addEventListener('click',()=>{ document.getElementById('product-form').style.display='block'; document.getElementById('product-form-title').textContent='Add Product'; document.getElementById('form-product').dataset.edit=''; document.getElementById('p-sku').value=''; document.getElementById('p-name').value=''; document.getElementById('p-price').value=''; document.getElementById('p-qty').value=''; document.getElementById('p-barcode').value=''; });
+      document.getElementById('cancel-product').addEventListener('click',()=>{ document.getElementById('product-form').style.display='none'; });
+      document.getElementById('form-product').addEventListener('submit',function(e){ e.preventDefault(); const sku=document.getElementById('p-sku').value.trim(); const name=document.getElementById('p-name').value.trim(); const price=Number(document.getElementById('p-price').value||0); const qty=Number(document.getElementById('p-qty').value||0); const barcode=document.getElementById('p-barcode').value.trim(); const edit = e.target.dataset.edit; if(edit){ const idx = state.products.findIndex(x=>x.sku===edit); if(idx>=0) state.products[idx]={sku,name,price,quantity:qty,barcode}; } else { if(state.products.find(x=>x.sku===sku)) return alert('SKU exists'); state.products.push({sku,name,price,quantity:qty,barcode}); } saveState(); refresh(); document.getElementById('product-form').style.display='none'; pushNotif('Product saved: '+sku); });
+      tbody.addEventListener('click',function(ev){ if(ev.target.classList.contains('del')){ const sku = ev.target.dataset.sku; if(confirm('Delete '+sku+'?')){ state.products = state.products.filter(p=>p.sku!==sku); saveState(); refresh(); pushNotif('Product removed: '+sku); }} if(ev.target.classList.contains('edit')){ const sku = ev.target.dataset.sku; const p = state.products.find(x=>x.sku===sku); if(p){ document.getElementById('p-sku').value=p.sku; document.getElementById('p-name').value=p.name; document.getElementById('p-price').value=p.price; document.getElementById('p-qty').value=p.quantity; document.getElementById('p-barcode').value=p.barcode; document.getElementById('form-product').dataset.edit=sku; document.getElementById('product-form').style.display='block'; document.getElementById('product-form-title').textContent='Edit Product'; } } }); }
 
-      function renderCart(){
-        tbody.innerHTML = cart.map((c,i)=>`<tr><td>${c.sku}</td><td>${c.name}</td><td>${c.price}</td><td><input data-idx="${i}" class="qty" type="number" value="${c.qty}" style="width:60px"/></td><td>${(c.price*c.qty).toFixed(2)}</td><td><button data-idx="${i}" class="btn remove">X</button></td></tr>`).join('');
-        recalc();
-      }
+    function openUsers(){ document.getElementById('right-panel').innerHTML = templates['tpl-users']; const tbody = document.querySelector('#users-table tbody'); function refresh(){ tbody.innerHTML = state.users.map(u=>`<tr><td>${u.email}</td><td>${u.first||u.name||''} ${u.last||''}</td><td>${u.role||''}</td><td>${u.expiry||''}</td><td><button data-email="${u.email}" class="btn del-user">Del</button></td></tr>`).join(''); } refresh(); document.getElementById('create-user-btn').addEventListener('click',()=>{ document.getElementById('user-form').style.display='block'; }); document.getElementById('cancel-user').addEventListener('click',()=>{ document.getElementById('user-form').style.display='none'; }); document.getElementById('form-user').addEventListener('submit',function(e){ e.preventDefault(); const u={email:document.getElementById('u-email').value.trim(),first:document.getElementById('u-first').value.trim(),last:document.getElementById('u-last').value.trim(),pass:document.getElementById('u-pass').value,role:document.getElementById('u-role').value,expiry:document.getElementById('u-expiry').value}; if(state.users.find(x=>x.email===u.email)) return alert('User exists'); state.users.push(u); saveState(); refresh(); document.getElementById('user-form').style.display='none'; pushNotif('User created: '+u.email); }); tbody.addEventListener('click',function(e){ if(e.target.classList.contains('del-user')){ if(confirm('Delete user '+e.target.dataset.email+'?')){ state.users = state.users.filter(x=>x.email!==e.target.dataset.email); saveState(); refresh(); pushNotif('User removed: '+e.target.dataset.email); } } }); }
 
-      function recalc(){
-        const subtotal = cart.reduce((s,c)=>s + c.price * c.qty,0);
-        const gstPct = Number(document.getElementById('bill-gst').value||0);
-        const gstAmt = subtotal * gstPct/100;
-        const disc = Number(document.getElementById('bill-discount').value||0);
-        const total = subtotal + gstAmt - disc;
-        document.getElementById('sub-total').textContent = subtotal.toFixed(2);
-        document.getElementById('gst-amt').textContent = gstAmt.toFixed(2);
-        document.getElementById('disc-amt').textContent = disc.toFixed(2);
-        document.getElementById('total-amt').textContent = total.toFixed(2);
-      }
+    function openCustomers(){ document.getElementById('right-panel').innerHTML = templates['tpl-customers']; const tbody = document.querySelector('#customers-table tbody'); function refresh(){ tbody.innerHTML = state.customers.map((c,i)=>`<tr><td>${c.name}</td><td>${c.phone||''}</td><td>${c.email||''}</td><td>${c.location||''}</td><td>${isActive(c)?'Yes':'No'}</td><td><button data-idx="${i}" class="btn edit-c">Edit</button> <button data-idx="${i}" class="btn del-c">Del</button></td></tr>`).join(''); }
+      function isActive(c){ const days = state.settings.customerFields.activeDays||30; const created = new Date(c.created||c._created||new Date()); const diff = (Date.now()-created.getTime())/(1000*60*60*24); return diff<=days; }
+      refresh(); document.getElementById('add-customer-btn').addEventListener('click',()=>{ document.getElementById('customer-form').style.display='block'; document.getElementById('form-customer').dataset.edit=''; document.getElementById('c-name').value=''; document.getElementById('c-phone').value=''; document.getElementById('c-email').value=''; document.getElementById('c-location').value=''; }); document.getElementById('cancel-customer').addEventListener('click',()=>{ document.getElementById('customer-form').style.display='none'; }); document.getElementById('customers-table').addEventListener('click',function(e){ if(e.target.classList.contains('del-c')){ const idx=Number(e.target.dataset.idx); if(confirm('Delete customer?')){ state.customers.splice(idx,1); saveState(); refresh(); pushNotif('Customer removed'); } } if(e.target.classList.contains('edit-c')){ const idx=Number(e.target.dataset.idx); const c=state.customers[idx]; if(c){ document.getElementById('customer-form').style.display='block'; document.getElementById('form-customer').dataset.edit=idx; document.getElementById('c-name').value=c.name; document.getElementById('c-phone').value=c.phone; document.getElementById('c-email').value=c.email; document.getElementById('c-location').value=c.location; } } }); }
 
-      // add product by search
-      document.getElementById('search-product').addEventListener('keypress',function(e){ if(e.key==='Enter'){ const q = this.value.trim(); const p = state.products.find(x=>x.sku===q || x.name.toLowerCase()===q.toLowerCase() || x.barcode===q); if(p){ const found = cart.find(c=>c.sku===p.sku); if(found) found.qty++; else cart.push({sku:p.sku,name:p.name,price:p.price,qty:1}); renderCart(); } else alert('Product not found');}});
-
-      document.getElementById('cart-table').addEventListener('click',function(e){ if(e.target.classList.contains('remove')){ cart.splice(Number(e.target.dataset.idx),1); renderCart();}});
-      document.getElementById('cart-table').addEventListener('change',function(e){ if(e.target.classList.contains('qty')){ const idx=Number(e.target.dataset.idx); cart[idx].qty = Number(e.target.value||1); renderCart(); }});
-
-      // Apply discount button fixed: recalculates immediately
+    function openBilling(){ document.getElementById('right-panel').innerHTML = templates['tpl-billing']; const cart=[]; const tbody = document.querySelector('#cart-table tbody'); function renderCart(){ tbody.innerHTML = cart.map((c,i)=>`<tr><td>${c.sku}</td><td>${c.name}</td><td>${c.price}</td><td><input data-idx="${i}" class="qty" type="number" value="${c.qty}" style="width:60px"/></td><td>${(c.price*c.qty).toFixed(2)}</td><td><button data-idx="${i}" class="btn remove">X</button></td></tr>`).join(''); recalc(); }
+      function recalc(){ const subtotal = cart.reduce((s,c)=>s+c.price*c.qty,0); const gstPct = Number(document.getElementById('bill-gst').value||0); const gstAmt = subtotal*gstPct/100; const disc = Number(document.getElementById('bill-discount').value||0); const total = subtotal + gstAmt - disc; document.getElementById('sub-total').textContent=subtotal.toFixed(2); document.getElementById('gst-amt').textContent=gstAmt.toFixed(2); document.getElementById('disc-amt').textContent=disc.toFixed(2); document.getElementById('total-amt').textContent=total.toFixed(2); }
+      document.getElementById('search-product').addEventListener('keypress',function(e){ if(e.key==='Enter'){ const q=this.value.trim(); const p = state.products.find(x=>x.sku===q || x.name.toLowerCase()===q.toLowerCase() || x.barcode===q); if(p){ const found = cart.find(c=>c.sku===p.sku); if(found) found.qty++; else cart.push({sku:p.sku,name:p.name,price:p.price,qty:1}); renderCart(); } else alert('Product not found'); } });
+      document.getElementById('cart-table').addEventListener('click',function(e){ if(e.target.classList.contains('remove')){ cart.splice(Number(e.target.dataset.idx),1); renderCart(); } });
+      document.getElementById('cart-table').addEventListener('change',function(e){ if(e.target.classList.contains('qty')){ const idx=Number(e.target.dataset.idx); cart[idx].qty=Number(e.target.value||1); renderCart(); } });
       document.getElementById('apply-discount').addEventListener('click',function(){ recalc(); pushNotif('Discount applied: ₹'+document.getElementById('bill-discount').value); });
-
-      document.getElementById('finalise-bill').addEventListener('click',function(){ if(cart.length===0){alert('Cart empty');return;} const sale = {items:cart.slice(),customer:document.getElementById('bill-customer').value,gst:Number(document.getElementById('bill-gst').value||0),discount:Number(document.getElementById('bill-discount').value||0),total:Number(document.getElementById('total-amt').textContent||0),when:new Date().toISOString()}; state.sales.push(sale); saveState(); cart.length=0; renderCart(); pushNotif('Sale completed'); alert('Sale saved'); });
-
+      document.getElementById('finalise-bill').addEventListener('click',function(){ if(cart.length===0) return alert('Cart empty'); const sale={items:cart.slice(),customer:document.getElementById('bill-customer').value,gst:Number(document.getElementById('bill-gst').value||0),discount:Number(document.getElementById('bill-discount').value||0),total:Number(document.getElementById('total-amt').textContent||0),when:new Date().toISOString()}; state.sales.push(sale); saveState(); cart.length=0; renderCart(); pushNotif('Sale completed'); alert('Sale saved'); });
       document.getElementById('clear-cart').addEventListener('click',()=>{ if(confirm('Clear cart?')){ cart.length=0; renderCart(); pushNotif('Cart cleared'); }});
+      document.getElementById('print-bill').addEventListener('click',()=>window.print()); renderCart(); }
 
-      document.getElementById('print-bill').addEventListener('click',()=>window.print());
-
-      renderCart();
+    function openReports(){ document.getElementById('right-panel').innerHTML = templates['tpl-reports']; const area=document.getElementById('reports-area'); const show=(from,to)=>{ const list=state.sales.filter(s=>{const d=new Date(s.when); return d>=from && d<=to;}); area.innerHTML=`<div>${list.length} sales</div><pre>${JSON.stringify(list,null,2)}</pre>`; };
+      const today=new Date(); today.setHours(0,0,0,0); const tomorrow=new Date(today); tomorrow.setDate(today.getDate()+1);
+      document.getElementById('rep-today').addEventListener('click',()=>{ show(today,new Date(tomorrow-1)); toggleTab('rep-today'); });
+      document.getElementById('rep-yesterday').addEventListener('click',()=>{ const yd=new Date(today); yd.setDate(today.getDate()-1); const ye=new Date(today); ye.setMilliseconds(-1); show(yd,ye); toggleTab('rep-yesterday'); });
+      document.getElementById('rep-custom').addEventListener('click',()=>{ document.getElementById('custom-range').classList.toggle('hidden'); toggleTab('rep-custom'); });
+      document.getElementById('filter-range').addEventListener('click',()=>{ const f=new Date(document.getElementById('from-date').value); const t=new Date(document.getElementById('to-date').value); if(!f||!t) return alert('Pick dates'); t.setHours(23,59,59,999); show(f,t); });
+      document.getElementById('export-sales').addEventListener('click',()=>{ const blob=new Blob([JSON.stringify(state.sales,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='sales.json'; a.click(); URL.revokeObjectURL(a.href); });
+      function toggleTab(id){ document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); document.getElementById(id).classList.add('active'); }
     }
 
-    // Reports
-    function openReports(){
-      document.getElementById('right-panel').innerHTML = templates['tpl-reports'];
-      const area = document.getElementById('reports-area');
-      const show = (from,to)=>{
-        const list = state.sales.filter(s=>{const d=new Date(s.when); return d>=from && d<=to;});
-        area.innerHTML = `<div>${list.length} sales</div><pre>${JSON.stringify(list,null,2)}</pre>`;
-      };
-      const today = new Date(); today.setHours(0,0,0,0); const tomorrow = new Date(today); tomorrow.setDate(today.getDate()+1);
-      document.getElementById('rep-today').addEventListener('click',()=>{ show(today,new Date(tomorrow-1)); toggleTab('rep-today');});
-      document.getElementById('rep-yesterday').addEventListener('click',()=>{ const yd = new Date(today); yd.setDate(today.getDate()-1); const ye = new Date(today); ye.setMilliseconds(-1); show(yd,ye); toggleTab('rep-yesterday');});
-      document.getElementById('rep-custom').addEventListener('click',()=>{ document.getElementById('custom-range').classList.toggle('hidden'); toggleTab('rep-custom');});
-      document.getElementById('filter-range').addEventListener('click',()=>{ const f=new Date(document.getElementById('from-date').value); const t=new Date(document.getElementById('to-date').value); if(!f||!t) return alert('Pick dates'); t.setHours(23,59,59,999); show(f,t);});
-      document.getElementById('export-sales').addEventListener('click',()=>{ const blob=new Blob([JSON.stringify(state.sales,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='sales.json'; a.click(); URL.revokeObjectURL(a.href);});
-
-      function toggleTab(id){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); document.getElementById(id).classList.add('active');}
-    }
-
-    // Settings
-    function openSettings(){ document.getElementById('right-panel').innerHTML = templates['tpl-settings'];
-      // populate
-      document.getElementById('admin-email').value = state.settings.adminEmail || '';
-      document.getElementById('admin-pass').value = state.settings.adminPass || '';
-      document.getElementById('c-phone').checked = state.settings.customerFields.phone;
-      document.getElementById('c-email').checked = state.settings.customerFields.email;
-      document.getElementById('c-location').checked = state.settings.customerFields.location;
-      document.getElementById('c-active-days').value = state.settings.customerFields.activeDays;
-      document.getElementById('b-location').value = state.settings.business.location||'';
-      document.getElementById('b-city').value = state.settings.business.city||'';
-      document.getElementById('b-state').value = state.settings.business.state||'';
-      document.getElementById('b-pincode').value = state.settings.business.pincode||'';
-
+    function openSettings(){ document.getElementById('right-panel').innerHTML = templates['tpl-settings']; document.getElementById('admin-email').value = state.settings.adminEmail || ''; document.getElementById('admin-pass').value = state.settings.adminPass || ''; document.getElementById('c-phone').checked = state.settings.customerFields.phone; document.getElementById('c-email').checked = state.settings.customerFields.email; document.getElementById('c-location').checked = state.settings.customerFields.location; document.getElementById('c-active-days').value = state.settings.customerFields.activeDays; document.getElementById('b-location').value = state.settings.business.location||''; document.getElementById('b-city').value = state.settings.business.city||''; document.getElementById('b-state').value = state.settings.business.state||''; document.getElementById('b-pincode').value = state.settings.business.pincode||'';
       document.querySelectorAll('[data-tab]').forEach(tab=>tab.addEventListener('click',function(){ document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); this.classList.add('active'); const tname=this.dataset.tab; document.getElementById('settings-login').classList.toggle('hidden', tname!=='login'); document.getElementById('settings-customers').classList.toggle('hidden', tname!=='customers'); document.getElementById('settings-business').classList.toggle('hidden', tname!=='business'); }));
-
-      document.getElementById('save-login').addEventListener('click',()=>{ state.settings.adminEmail = document.getElementById('admin-email').value.trim(); state.settings.adminPass = document.getElementById('admin-pass').value; saveState(); pushNotif('Admin login saved'); alert('Saved'); });
+      document.getElementById('save-login').addEventListener('click',()=>{ state.settings.adminEmail=document.getElementById('admin-email').value.trim(); state.settings.adminPass=document.getElementById('admin-pass').value; saveState(); pushNotif('Admin login saved'); alert('Saved'); });
       document.getElementById('reset-login').addEventListener('click',()=>{ document.getElementById('admin-email').value='admin@nammo'; document.getElementById('admin-pass').value='admin123'; state.settings.adminEmail='admin@nammo'; state.settings.adminPass='admin123'; saveState(); pushNotif('Admin reset to default'); alert('Reset to default'); });
       document.getElementById('forget-login').addEventListener('click',()=>{ if(confirm('Forget stored admin credentials?')){ state.settings.adminEmail=''; state.settings.adminPass=''; document.getElementById('admin-email').value=''; document.getElementById('admin-pass').value=''; saveState(); pushNotif('Admin credentials forgotten'); alert('Cleared'); }});
-
       document.getElementById('save-customer-settings').addEventListener('click',()=>{ state.settings.customerFields.phone = document.getElementById('c-phone').checked; state.settings.customerFields.email = document.getElementById('c-email').checked; state.settings.customerFields.location = document.getElementById('c-location').checked; state.settings.customerFields.activeDays = Number(document.getElementById('c-active-days').value||30); saveState(); pushNotif('Customer settings saved'); alert('Saved'); });
-
       document.getElementById('save-business').addEventListener('click',()=>{ state.settings.business.location = document.getElementById('b-location').value; state.settings.business.city = document.getElementById('b-city').value; state.settings.business.state = document.getElementById('b-state').value; state.settings.business.pincode = document.getElementById('b-pincode').value; saveState(); pushNotif('Business location saved'); alert('Saved'); });
     }
 
-    // Notifications
-    function openNotifications(){ document.getElementById('right-panel').innerHTML = templates['tpl-notifications']; const list = document.getElementById('notifications-list'); function render(){ list.innerHTML = state.notifications.map(n=>`<div style="padding:8px;border-bottom:1px solid #eef">${new Date(n.when).toLocaleString()} - ${n.text}</div>`).join('') || '<div class="muted">No notifications</div>'; }
-      render(); document.getElementById('clear-notifications').addEventListener('click',()=>{ if(confirm('Clear notifications?')){ state.notifications=[]; saveState(); render(); updateNotifCount(); }});
-    }
+    function openNotifications(){ document.getElementById('right-panel').innerHTML = templates['tpl-notifications']; const list = document.getElementById('notifications-list'); function render(){ list.innerHTML = state.notifications.map(n=>`<div style="padding:8px;border-bottom:1px solid #eef">${new Date(n.when).toLocaleString()} - ${n.text}</div>`).join('') || '<div class="muted">No notifications</div>'; } render(); document.getElementById('clear-notifications').addEventListener('click',()=>{ if(confirm('Clear notifications?')){ state.notifications=[]; saveState(); render(); updateNotifCount(); }}); }
 
-    // Expose some quick functions for first dashboard after login
-    window.openBilling = openBilling; window.openProducts = openProducts; window.openUsers = openUsers; window.openReports = openReports; window.openSettings = openSettings; window.openNotifications = openNotifications;
-
+    // expose for debug
+    window.openBilling = openBilling; window.openProducts = openProducts; window.openUsers = openUsers; window.openReports = openReports; window.openSettings = openSettings; window.openNotifications = openNotifications; window.openCustomers = openCustomers;
   })();
   </script>
 </body>
