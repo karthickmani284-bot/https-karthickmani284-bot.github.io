@@ -1,411 +1,422 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Nammo Billing — Rewritten</title>
-  <style>
-    /* Simple modern CSS - responsive, clean grid */
-    :root{--bg:#f6f8fa;--card:#fff;--muted:#69707a;--accent:#0b6efd;--danger:#e02424}
-    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
-    body{margin:0;background:var(--bg);color:#0b1a2b}
-    header.top{background:#0b2a66;color:#fff;padding:12px 18px;display:flex;align-items:center;justify-content:space-between}
-    .brand-row{display:flex;gap:12px;align-items:center}
-    .brand{font-weight:700;font-size:18px}
-    .tagline{font-size:12px;opacity:.9}
-    .top-right{display:flex;gap:10px;align-items:center}
-    .small{font-size:13px;color:rgba(255,255,255,.9)}
-    button.btn{background:transparent;border:1px solid rgba(11,110,253,.15);padding:8px 10px;border-radius:8px;cursor:pointer}
-    button.btn.primary{background:var(--accent);color:#fff;border:none}
-    button.icon{background:transparent;border:none;color:#fff;cursor:pointer}
-
-    .app{display:grid;grid-template-columns:260px 1fr;gap:18px;padding:18px}
-    .sidebar{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 6px 18px rgba(11,18,35,.04)}
-    .panel{background:var(--card);padding:14px;border-radius:10px;margin-bottom:14px}
-    h3{margin:0 0 10px 0}
-    .actions{display:flex;flex-direction:column;gap:8px}
-    .btn.full{width:100%;text-align:left;padding:10px}
-    .row{display:flex;gap:10px;align-items:center}
-    .row.small label{display:flex;flex-direction:column;font-size:13px}
-    input,select{padding:8px;border:1px solid #e6e9ee;border-radius:8px}
-    table.table{width:100%;border-collapse:collapse}
-    table.table th, table.table td{padding:8px;border-bottom:1px solid #f0f2f5;text-align:left}
-    .right-panel{min-height:400px}
-
-    /* forms & cards */
-    .card.small{padding:14px;border-radius:10px;background:var(--card)}
-    .muted{color:var(--muted);font-size:13px}
-
-    footer{padding:10px 18px;text-align:center;color:var(--muted);font-size:13px}
-
-    /* responsive */
-    @media (max-width:900px){.app{grid-template-columns:1fr}.sidebar{order:2}}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Nammo Billing — Simple POS (Frontend Demo)</title>
+<meta name="description" content="Nammo Billing - front-end demo (signup, products, CSV import, billing, admin/staff roles)"/>
+<style>
+  :root{--accent:#0b84ff;--danger:#dc3545;--muted:#6b7280;--bg:#0f1724;--card:#0b1220}
+  *{box-sizing:border-box}
+  body{font-family:Inter,system-ui,Arial; margin:0; background:linear-gradient(180deg,#081225,#071428); color:#e6eef6}
+  .wrap{max-width:1100px;margin:22px auto;padding:18px}
+  header{display:flex;gap:12px;align-items:center}
+  h1{margin:0;font-size:20px}
+  .lead{color:var(--muted);font-size:13px}
+  nav{margin-left:auto;display:flex;gap:8px}
+  button, .btn{background:var(--accent);color:#fff;padding:8px 10px;border-radius:8px;border:0;cursor:pointer;font-weight:600}
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04)}
+  .grid{display:grid;grid-template-columns:1fr 360px;gap:16px;margin-top:16px}
+  .card{background:rgba(255,255,255,0.03);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+  label{display:block;font-size:13px;color:var(--muted);margin-top:8px}
+  input, select, textarea{width:100%;padding:8px;margin-top:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left}
+  .muted{color:var(--muted);font-size:13px}
+  .chip{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.03);font-size:13px}
+  .small{font-size:13px;color:var(--muted)}
+  .danger{background:var(--danger);padding:6px 10px;border-radius:8px;color:#fff;border:0}
+  .center{display:flex;gap:8px;align-items:center}
+  .row{display:flex;gap:8px}
+  .product-suggestion{cursor:pointer;padding:6px;border-radius:6px}
+  footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+  .hidden{display:none}
+</style>
 </head>
 <body>
-  <header class="top">
-    <div class="brand-row">
-      <div class="brand">Nammo Billing</div>
-      <div class="tagline muted">Simple billing • products • users • reports</div>
-    </div>
-    <div class="top-right">
-      <div class="small">Signed in as: <b id="top-username">—</b></div>
-      <button id="btn-logout" class="btn">Logout</button>
-    </div>
-  </header>
-
-  <div class="app">
-    <aside class="sidebar">
-      <div class="panel">
-        <h3>Quick Actions</h3>
-        <div class="actions">
-          <button id="nav-dashboard" class="btn full">Dashboard</button>
-          <button id="nav-billing" class="btn full">Billing</button>
-          <button id="nav-products" class="btn full">Products</button>
-          <button id="nav-users" class="btn full">Users</button>
-          <button id="nav-reports" class="btn full">Reports</button>
-        </div>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Nammo Billing</h1>
+        <div class="lead">Simple POS (frontend demo) — Signup → Products → Quick Sale</div>
       </div>
+      <nav id="topNav">
+        <span id="who" class="muted">Not signed in</span>
+        <button class="btn" id="btnShowLogin">Login / Signup</button>
+      </nav>
+    </header>
 
-      <div class="panel">
-        <h4>CSV / Backup</h4>
-        <input id="csv-input" type="file" accept=".csv,text/csv" />
-        <div style="margin-top:8px" class="row">
-          <button id="import-csv" class="btn">Import CSV (Products)</button>
-          <button id="export-products" class="btn">Export products.json</button>
-        </div>
-        <div style="margin-top:10px">
-          <button id="backup-json" class="btn">Download Site JSON</button>
-          <button id="restore-json" class="btn">Upload Site JSON</button>
-          <input id="restore-file" type="file" accept=".json" style="display:none" />
-        </div>
-      </div>
-
-      <div class="panel card small">
-        <div class="muted">Users - create Admin & Staff with fields:</div>
-        <ul class="muted">
-          <li>Name, Phone, Email, Role, DOJ (date of joining)</li>
-        </ul>
-        <div style="margin-top:10px" class="row">
-          <button id="open-user-creator" class="btn">Open Create User</button>
-        </div>
-      </div>
-    </aside>
-
-    <main class="right-panel" id="main-area">
-      <!-- dynamic content injected here -->
-    </main>
-  </div>
-
-  <footer>Software owned by - <strong>Karthick Subramanian</strong></footer>
-
-  <template id="tpl-dashboard">
-    <div class="panel">
-      <h3>Dashboard</h3>
-      <div class="row">
-        <div style="flex:1" class="card small">
-          <div class="muted">Products: <b id="stat-products">0</b></div>
-          <div class="muted">Users: <b id="stat-users">0</b></div>
-          <div class="muted">Sales: <b id="stat-sales">0</b></div>
-        </div>
-        <div style="flex:2;padding-left:12px">
-          <div class="card small">
-            <h4>Recent Sales</h4>
-            <div id="recent-sales"></div>
+    <main class="grid">
+      <section>
+        <!-- DASHBOARD (changes by view) -->
+        <div id="viewDashboard" class="card">
+          <h2>Dashboard</h2>
+          <div class="small muted">Quick actions</div>
+          <div style="margin-top:10px" class="row">
+            <button class="btn" id="goProducts">Products</button>
+            <button class="btn" id="goBilling">Quick Sale</button>
+            <button class="btn" id="goUsers">Manage Users</button>
+            <button class="btn ghost" id="exportData">Export Data (JSON)</button>
+          </div>
+          <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)"/>
+          <div>
+            <strong>Inventory summary</strong>
+            <div id="invSummary" class="muted small" style="margin-top:8px">Loading...</div>
           </div>
         </div>
-      </div>
-    </div>
-  </template>
 
-  <template id="tpl-products">
-    <div class="panel">
-      <h3>Products</h3>
-      <div class="row" style="margin-bottom:8px">
-        <button id="add-product-btn" class="btn primary">Add product</button>
-        <button id="download-products" class="btn">Download CSV</button>
-      </div>
-      <table class="table" id="products-table">
-        <thead><tr><th>SKU</th><th>Name</th><th>Price</th><th>Qty</th><th>Barcode</th><th>Actions</th></tr></thead>
-        <tbody></tbody>
-      </table>
+        <!-- PRODUCTS -->
+        <div id="viewProducts" class="card hidden">
+          <h2>Products — Manual & CSV Import</h2>
+          <div class="small muted">Create or upload product list. Barcode is optional.</div>
 
-      <div id="product-form" style="display:none;margin-top:12px" class="card small">
-        <h4 id="product-form-title">Add Product</h4>
-        <form id="form-product">
-          <div class="row small"><label>SKU <input id="p-sku" required /></label><label>Name <input id="p-name" required /></label></div>
-          <div class="row small"><label>Price ₹ <input id="p-price" type="number" step="0.01" required /></label><label>Quantity <input id="p-qty" type="number" required /></label></div>
-          <div class="row small"><label>Barcode <input id="p-barcode" /></label></div>
-          <div style="margin-top:8px" class="row"><button class="btn primary" type="submit">Save</button><button id="cancel-product" class="btn" type="button">Cancel</button></div>
-        </form>
-      </div>
-    </div>
-  </template>
+          <label>Product name</label>
+          <input id="p_name" placeholder="e.g. Archie Masala"/>
 
-  <template id="tpl-users">
-    <div class="panel">
-      <h3>Users</h3>
-      <div class="row" style="margin-bottom:8px">
-        <button id="create-user-btn" class="btn primary">Create User</button>
-        <button id="download-users" class="btn">Export CSV</button>
-      </div>
-      <table class="table" id="users-table">
-        <thead><tr><th>Email</th><th>Name</th><th>Phone</th><th>Role</th><th>DOJ</th><th>Actions</th></tr></thead>
-        <tbody></tbody>
-      </table>
+          <label>Price (₹)</label>
+          <input id="p_price" type="number" step="0.01" placeholder="100"/>
 
-      <div id="user-form" style="display:none;margin-top:12px" class="card small">
-        <h4 id="user-form-title">Create User</h4>
-        <form id="form-user">
-          <div class="row small"><label>Email <input id="u-email" type="email" required /></label><label>First name <input id="u-first" required /></label></div>
-          <div class="row small"><label>Last name <input id="u-last" required /></label><label>Phone <input id="u-phone" /></label></div>
-          <div class="row small"><label>Role <select id="u-role"><option value="staff">Staff</option><option value="admin">Admin</option></select></label><label>DOJ <input id="u-doj" type="date" /></label></div>
-          <div style="margin-top:8px" class="row"><button class="btn primary" type="submit">Save</button><button id="cancel-user" class="btn" type="button">Cancel</button></div>
-        </form>
-      </div>
-    </div>
-  </template>
+          <label>Quantity</label>
+          <input id="p_qty" type="number" placeholder="10"/>
 
-  <template id="tpl-billing">
-    <div class="panel">
-      <h3>Billing</h3>
-      <div class="row small" style="margin-bottom:8px">
-        <label>Customer name <input id="bill-customer" /></label>
-        <label>Customer DOB <input id="bill-dob" type="date" /></label>
-        <label>Phone <input id="bill-phone" /></label>
-        <label>Email <input id="bill-email" type="email" /></label>
-      </div>
+          <label>Barcode (optional)</label>
+          <input id="p_barcode" placeholder="1234567890123"/>
 
-      <div class="row" style="margin-bottom:8px;gap:8px;align-items:center">
-        <label style="flex:1">
-          Saved customer
-          <select id="saved-customers" style="width:100%">
-            <option value="__new">-- New customer --</option>
+          <div style="margin-top:10px;display:flex;gap:8px">
+            <button class="btn" id="addProduct">Add / Update Product</button>
+            <button class="btn ghost" id="clearProducts">Clear All (admin only)</button>
+          </div>
+
+          <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)"/>
+
+          <div>
+            <label>Upload CSV (Excel -> Save as CSV)</label>
+            <input id="csvFile" type="file" accept=".csv"/>
+            <div class="small muted">CSV format: name,price,qty,barcode (header optional)</div>
+            <div style="margin-top:8px"><button class="btn" id="importCSV">Import CSV</button></div>
+          </div>
+
+          <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)"/>
+
+          <h3 style="margin:0">Product list</h3>
+          <div style="max-height:280px;overflow:auto;margin-top:8px">
+            <table id="productTable"><thead><tr><th>Name</th><th>Price</th><th>Qty</th><th>Barcode</th><th></th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+
+        <!-- BILLING -->
+        <div id="viewBilling" class="card hidden">
+          <h2>Quick Sale</h2>
+          <div class="small muted">Add items, apply discount & GST, then Complete Sale to reduce stock.</div>
+
+          <label>Search product (by name or barcode)</label>
+          <input id="searchProd" placeholder="Type product or scan barcode"/>
+
+          <div id="suggestions" style="margin-top:6px"></div>
+
+          <div style="margin-top:10px">
+            <table id="cartTable"><thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Subtotal</th><th></th></tr></thead><tbody></tbody></table>
+          </div>
+
+          <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+            <label style="margin:0">Discount</label>
+            <select id="discType"><option value="percent">Percent %</option><option value="fixed">Fixed ₹</option></select>
+            <input id="discVal" type="number" value="0" style="width:120px"/>
+            <label style="margin:0">GST</label>
+            <select id="gstRate"><option value="0">No GST</option><option value="5">5%</option><option value="12">12%</option><option value="18" selected>18%</option></select>
+            <button class="btn" id="completeSale">Complete Sale</button>
+          </div>
+
+          <div style="margin-top:12px" class="muted small" id="billSummary"></div>
+        </div>
+
+        <!-- USERS (Admin & Staff) -->
+        <div id="viewUsers" class="card hidden">
+          <h2>Users</h2>
+          <div class="small muted">Create staff & manage expiry. First created account becomes Admin.</div>
+
+          <label>First name</label><input id="u_fname"/>
+          <label>Last name</label><input id="u_lname"/>
+          <label>Phone</label><input id="u_phone"/>
+          <label>Email</label><input id="u_email"/>
+          <label>Password</label><input id="u_pass" type="password"/>
+          <label>Role</label>
+          <select id="u_role">
+            <option value="staff">Staff</option>
+            <option value="admin">Admin</option>
           </select>
-        </label>
-        <button id="btn-save-customer" class="btn">Save customer</button>
-        <button id="btn-add-customer-to-users" class="btn">Add to users</button>
-      </div>
+          <label>Expiry date (yyyy-mm-dd)</label><input id="u_expiry" type="date"/>
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button class="btn" id="createUser">Create user</button>
+            <button class="btn ghost" id="listUsers">View users</button>
+          </div>
 
-      <div class="row" style="margin-bottom:8px">
-        <input id="search-product" placeholder="Search product by name, SKU or barcode" style="flex:1" />
-        <button id="scan-barcode" class="btn">Scan barcode</button>
-      </div>
+          <div style="margin-top:12px;max-height:220px;overflow:auto">
+            <table id="usersTable"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Expiry</th><th></th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
 
-      <table class="table" id="cart-table">
-        <thead><tr><th>SKU</th><th>Name</th><th>Price</th><th>Qty</th><th>Line</th><th>Action</th></tr></thead>
-        <tbody></tbody>
-      </table>
+      </section>
 
-      <div class="row" style="margin-top:8px;gap:16px;align-items:center">
-        <label>GST % <input id="bill-gst" type="number" value="18" /></label>
-        <label>Discount (₹) <input id="bill-discount" type="number" value="0" step="0.01" /></label>
-      </div>
+      <aside>
+        <div class="card">
+          <h3>Account</h3>
+          <div id="accountBox">
+            <div class="muted small">No active session</div>
+            <div style="margin-top:8px">
+              <button class="btn" id="btnLogin">Login</button>
+              <button class="btn ghost" id="btnSignup">Signup</button>
+            </div>
+          </div>
 
-      <div class="totals" style="margin-top:12px">
-        <div>Subtotal: ₹ <span id="sub-total">0.00</span></div>
-        <div>Discount: ₹ <span id="disc-amt">0.00</span></div>
-        <div>Taxable: ₹ <span id="taxable-amt">0.00</span></div>
-        <div>GST: ₹ <span id="gst-amt">0.00</span></div>
-        <div class="big">Total: ₹ <span id="total-amt">0.00</span></div>
-      </div>
+          <div style="margin-top:12px" class="hidden" id="adminActions">
+            <h4>Admin</h4>
+            <div class="small muted">Admin-only controls</div>
+            <label>Extend user expiry (email)</label>
+            <input id="extendEmail"/>
+            <label>New expiry date</label>
+            <input id="extendDate" type="date"/>
+            <div style="margin-top:8px"><button class="btn" id="btnExtend">Extend</button></div>
+          </div>
+        </div>
 
-      <div style="margin-top:12px" class="row">
-        <button id="finalise-bill" class="btn primary">Complete Sale</button>
-        <button id="print-bill" class="btn">Print</button>
-        <button id="clear-cart" class="btn">Clear</button>
-      </div>
-    </div>
-  </template>
+        <div style="height:12px"></div>
 
-  <template id="tpl-reports">
-    <div class="panel">
-      <h3>Reports</h3>
-      <div class="row" style="margin-bottom:8px;gap:8px;align-items:center">
-        <label>Mode <select id="report-mode"><option value="daily">Daily</option><option value="monthly">Monthly</option><option value="custom">Custom range</option></select></label>
-        <label>From <input id="report-from" type="date" /></label>
-        <label>To <input id="report-to" type="date" /></label>
-        <button id="generate-report" class="btn primary">Generate</button>
-        <button id="download-report" class="btn">Download CSV</button>
-      </div>
-      <div id="reports-area"></div>
-    </div>
-  </template>
+        <div class="card">
+          <h4>About</h4>
+          <div class="small muted">Product name: <strong>Nammo Billing</strong></div>
+          <div style="margin-top:8px">
+            <button class="btn ghost" id="signOut">Sign out</button>
+          </div>
+        </div>
+      </aside>
+    </main>
 
-  <script>
-    // ---- Simple single-file app state + helpers ----
-    const state = {
-      products: [],
-      users: [],
-      sales: [],
-      currentUser: {name:'Admin', email:'admin@nammo', role:'admin'}
+    <footer>Nammo Billing — Demo frontend. Not secure for production. For backend upgrade, ask me.</footer>
+  </div>
+
+<script>
+/* =======================
+   Simple client-side POS
+   - localStorage used: users, products, sales
+   - passwords: base64 (NOT secure) — use server auth later
+   ======================= */
+
+const STORAGE_USERS = 'nammo_users_v1';
+const STORAGE_PRODUCTS = 'nammo_products_v1';
+const STORAGE_SALES = 'nammo_sales_v1';
+const SESSION_KEY = 'nammo_session_v1';
+
+// init helpers
+function nowIso(){ return new Date().toISOString(); }
+function todayDateISO(){ return new Date().toISOString().slice(0,10); }
+function load(key){ try{ return JSON.parse(localStorage.getItem(key) || '[]'); }catch(e){return []}}
+function save(key,data){ localStorage.setItem(key, JSON.stringify(data)); }
+function saveObj(key,obj){ localStorage.setItem(key, JSON.stringify(obj)); }
+function readObj(key){ try{return JSON.parse(localStorage.getItem(key));}catch(e){return null} }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function b64(s){ return btoa(s); }
+function unb64(s){ try{return atob(s);}catch(e){return s} }
+function formatMoney(n){ return '₹' + Number(n).toFixed(2); }
+
+// initial seed: create default admin if none exist
+let users = load(STORAGE_USERS);
+if(users.length===0){
+  const admin = { id: uid(), first:'Admin', last:'User', phone:'', email:'admin@nammo.local', pass:b64('admin123'), role:'admin', expiry: '2099-12-31', created: nowIso() };
+  users.push(admin); save(STORAGE_USERS, users);
+}
+
+// products and sales
+let products = load(STORAGE_PRODUCTS);
+let sales = load(STORAGE_SALES);
+
+// session
+let session = readObj(SESSION_KEY) || null;
+
+// UI refs
+const who = document.getElementById('who');
+const btnShowLogin = document.getElementById('btnShowLogin');
+const btnLogin = document.getElementById('btnLogin');
+const btnSignup = document.getElementById('btnSignup');
+const signOutBtn = document.getElementById('signOut');
+const viewDashboard = document.getElementById('viewDashboard');
+const viewProducts = document.getElementById('viewProducts');
+const viewBilling = document.getElementById('viewBilling');
+const viewUsers = document.getElementById('viewUsers');
+const goProducts = document.getElementById('goProducts');
+const goBilling = document.getElementById('goBilling');
+const goUsers = document.getElementById('goUsers');
+const productTable = document.querySelector('#productTable tbody');
+const usersTable = document.querySelector('#usersTable tbody');
+const invSummary = document.getElementById('invSummary');
+const adminActions = document.getElementById('adminActions');
+const accountBox = document.getElementById('accountBox');
+
+// simple navigation
+function show(view){
+  [viewDashboard, viewProducts, viewBilling, viewUsers].forEach(v=>v.classList.add('hidden'));
+  view.classList.remove('hidden');
+}
+show(viewDashboard);
+
+// render top bar / account
+function renderAccount(){
+  users = load(STORAGE_USERS);
+  products = load(STORAGE_PRODUCTS);
+  sales = load(STORAGE_SALES);
+  session = readObj(SESSION_KEY);
+  if(session){
+    who.textContent = session.name + ' • ' + session.role;
+    accountBox.innerHTML = <div class="small">Signed in as <strong>${session.name}</strong> (${session.email})</div>;
+    const adminPanel = session.role === 'admin' ? '' : 'hidden';
+    adminActions.classList.toggle('hidden', session.role !== 'admin');
+  } else {
+    who.textContent = 'Not signed in';
+    accountBox.innerHTML = `<div class="muted small">No active session</div>
+      <div style="margin-top:8px"><button class="btn" id="btnLogin2">Login</button>
+      <button class="btn ghost" id="btnSignup2">Signup</button></div>`;
+    document.getElementById('btnLogin2').addEventListener('click', ()=>openAuth('login'));
+    document.getElementById('btnSignup2').addEventListener('click', ()=>openAuth('signup'));
+  }
+  refreshInventorySummary();
+}
+renderAccount();
+
+// AUTH / modal simple prompts
+function openAuth(mode){
+  if(mode==='login'){
+    const email = prompt('Email (login):');
+    const pass = prompt('Password:');
+    if(!email || !pass) return alert('Cancelled');
+    const u = users.find(x=>x.email.toLowerCase()===email.toLowerCase());
+    if(!u) return alert('No user found');
+    // expiry check
+    if(u.expiry && u.expiry !== '' && u.expiry < todayDateISO()){
+      return alert('Account expired. Contact admin.');
     }
+    if(unb64(u.pass) !== pass) return alert('Wrong password');
+    session = { id:u.id, name: u.first + ' ' + u.last, email:u.email, role:u.role };
+    saveObj(SESSION_KEY, session);
+    renderAccount();
+    alert('Signed in');
+  } else {
+    // signup flow
+    const first = prompt('First name:') || '';
+    const last = prompt('Last name:') || '';
+    const phone = prompt('Phone:') || '';
+    const email = prompt('Email:');
+    const pass = prompt('Password (min 4 chars):');
+    if(!email || !pass) return alert('Cancelled');
+    // if first user (no users) make admin - already seeded; but allow admin creation only by admin via UI
+    if(users.find(x=>x.email.toLowerCase()===email.toLowerCase())) return alert('Email exists');
+    // default expiry 2099 if admin creates; else 1 year
+    const expiry = new Date(); expiry.setFullYear(expiry.getFullYear() + 1);
+    const u = { id: uid(), first, last, phone, email, pass: b64(pass), role:'staff', expiry: expiry.toISOString().slice(0,10), created: nowIso() };
+    users.push(u); save(STORAGE_USERS, users);
+    alert('Signup success. Ask admin to promote to admin if needed.');
+  }
+}
 
-    // Persist/load helpers
-    function saveSite(){ localStorage.setItem('nammo_site', JSON.stringify(state)) }
-    function loadSite(){ const v = localStorage.getItem('nammo_site'); if(v) Object.assign(state, JSON.parse(v)); }
-    loadSite();
+// top nav buttons
+btnShowLogin.addEventListener('click', ()=> openAuth('login'));
+btnLogin.addEventListener('click', ()=> openAuth('login'));
+btnSignup.addEventListener('click', ()=> openAuth('signup'));
+signOutBtn.addEventListener('click', ()=> { localStorage.removeItem(SESSION_KEY); session=null; renderAccount(); alert('Signed out'); });
 
-    // UI helpers
-    const main = document.getElementById('main-area');
-    const topUser = document.getElementById('top-username');
-    topUser.textContent = state.currentUser.name || state.currentUser.email;
-    document.getElementById('btn-logout').addEventListener('click',()=>{ if(confirm('Logout?')){ state.currentUser = {name:'Guest'}; saveSite(); alert('Logged out (demo)'); location.reload(); } })
+// navigation
+goProducts.addEventListener('click', ()=> { show(viewProducts); renderProducts(); });
+goBilling.addEventListener('click', ()=> { show(viewBilling); renderProducts(); renderCart(); });
+goUsers.addEventListener('click', ()=> { show(viewUsers); renderUsers(); });
 
-    // Navigation
-    document.getElementById('nav-dashboard').addEventListener('click',()=>renderDashboard())
-    document.getElementById('nav-products').addEventListener('click',()=>renderProducts())
-    document.getElementById('nav-users').addEventListener('click',()=>renderUsers())
-    document.getElementById('nav-billing').addEventListener('click',()=>renderBilling())
-    document.getElementById('nav-reports').addEventListener('click',()=>renderReports())
-    document.getElementById('open-user-creator').addEventListener('click',()=>renderUsers(true))
+// PRODUCTS
+function renderProducts(){
+  products = load(STORAGE_PRODUCTS);
+  productTable.innerHTML = '';
+  products.forEach(p=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${escapeHtml(p.name)}</td><td>${formatMoney(p.price)}</td><td>${p.qty}</td><td>${escapeHtml(p.barcode||'')}</td>
+      <td><button class="btn ghost" data-id="${p.id}" data-act="edit">Edit</button> <button class="danger" data-id="${p.id}" data-act="del">Delete</button></td>`;
+    productTable.appendChild(tr);
+  });
+  // wire
+  [...productTable.querySelectorAll('button')].forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const id = e.target.getAttribute('data-id');
+      const act = e.target.getAttribute('data-act');
+      if(act==='edit'){ const p = products.find(x=>x.id===id); if(p){document.getElementById('p_name').value=p.name;document.getElementById('p_price').value=p.price;document.getElementById('p_qty').value=p.qty;document.getElementById('p_barcode').value=p.barcode||'';} show(viewProducts); }
+      if(act==='del'){ if(!confirm('Delete product?')) return; products = products.filter(x=>x.id!==id); save(STORAGE_PRODUCTS, products); renderProducts(); refreshInventorySummary(); }
+    });
+  });
+}
 
-    // CSV import products
-    document.getElementById('import-csv').addEventListener('click',()=>{
-      const f = document.getElementById('csv-input').files[0]; if(!f){ alert('Select CSV file first'); return }
-      const reader = new FileReader(); reader.onload = e=>{
-        const txt = e.target.result; const rows = txt.split(/\r?\n/).filter(Boolean);
-        const headers = rows.shift().split(',').map(h=>h.trim().toLowerCase());
-        rows.forEach(r=>{ const cols = r.split(','); const obj={}; headers.forEach((h,i)=>obj[h]=cols[i]);
-          // normalize expected fields
-          state.products.push({sku:obj.sku||Date.now().toString(), name:obj.name||'', price:parseFloat(obj.price||0)||0, qty:parseInt(obj.quantity||obj.qty||0)||0, barcode:obj.barcode||''})
-        }); saveSite(); alert('Imported products: '+rows.length); renderProducts();
-      }; reader.readAsText(f);
-    })
+document.getElementById('addProduct').addEventListener('click', ()=>{
+  if(!session || session.role!=='admin') return alert('Only admin can add or update products');
+  const name = document.getElementById('p_name').value.trim();
+  const price = Number(document.getElementById('p_price').value) || 0;
+  const qty = Number(document.getElementById('p_qty').value) || 0;
+  const barcode = document.getElementById('p_barcode').value.trim();
+  if(!name) return alert('Name required');
+  // update if exists by name or barcode
+  let p = products.find(x=>x.name.toLowerCase()===name.toLowerCase() || (barcode && x.barcode===barcode));
+  if(p){
+    p.price = price; p.qty = qty; p.barcode = barcode;
+  } else {
+    p = { id: uid(), name, price, qty, barcode, created: nowIso() };
+    products.push(p);
+  }
+  save(STORAGE_PRODUCTS, products); renderProducts(); refreshInventorySummary();
+  alert('Product saved');
+  document.getElementById('p_name').value='';document.getElementById('p_price').value='';document.getElementById('p_qty').value='';document.getElementById('p_barcode').value='';
+});
 
-    document.getElementById('export-products').addEventListener('click',()=>downloadJSON(state.products,'products.json'))
-    document.getElementById('backup-json').addEventListener('click',()=>downloadJSON(state,'nammo-backup.json'))
-    document.getElementById('restore-json').addEventListener('click',()=>document.getElementById('restore-file').click())
-    document.getElementById('restore-file').addEventListener('change',e=>{
-      const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload = ev=>{ try{ const d=JSON.parse(ev.target.result); Object.assign(state,d); saveSite(); alert('Site restored'); location.reload(); }catch(er){alert('Invalid JSON') } } ; r.readAsText(f);
-    })
+document.getElementById('clearProducts').addEventListener('click', ()=>{
+  if(!session || session.role!=='admin') return alert('Only admin');
+  if(!confirm('Clear ALL products? This cannot be undone.')) return;
+  products = []; save(STORAGE_PRODUCTS, products); renderProducts(); refreshInventorySummary();
+});
 
-    // --- render functions ---
-    function renderDashboard(){ main.innerHTML = ''; const tpl = document.getElementById('tpl-dashboard').content.cloneNode(true); main.appendChild(tpl); document.getElementById('stat-products').textContent = state.products.length; document.getElementById('stat-users').textContent = state.users.length; document.getElementById('stat-sales').textContent = state.sales.length; const recent = document.getElementById('recent-sales'); recent.innerHTML = state.sales.slice(-5).reverse().map(s=>`<div class="muted">${new Date(s.date).toLocaleString()} — ₹${s.total.toFixed(2)} (${s.items.length} items)</div>`).join('') }
+// CSV import
+document.getElementById('importCSV').addEventListener('click', ()=>{
+  if(!session || session.role!=='admin') return alert('Only admin can import CSV');
+  const f = document.getElementById('csvFile').files[0];
+  if(!f) return alert('Choose a CSV file');
+  const reader = new FileReader();
+  reader.onload = e=>{
+    const text = e.target.result;
+    importProductsFromCSV(text);
+  };
+  reader.readAsText(f);
+});
+function importProductsFromCSV(text){
+  // simple parser: split lines, comma separated
+  const lines = text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  lines.forEach((ln,i)=>{
+    const cols = ln.split(',');
+    // allow header detection (if contains 'name' or 'price' words)
+    if(i===0 && /name/i.test(cols[0]) && /price/i.test(cols[1])) return;
+    const name = (cols[0]||'').trim();
+    const price = Number((cols[1]||'0').trim())||0;
+    const qty = Number((cols[2]||'0').trim())||0;
+    const barcode = (cols[3]||'').trim();
+    if(!name) return;
+    let p = products.find(x=>x.name.toLowerCase()===name.toLowerCase() || (barcode && x.barcode===barcode));
+    if(p){ p.price = price; p.qty = qty; p.barcode = barcode; }
+    else { products.push({ id: uid(), name, price, qty, barcode, created: nowIso() }); }
+  });
+  save(STORAGE_PRODUCTS, products); renderProducts(); refreshInventorySummary(); alert('CSV imported');
+}
 
-    function renderProducts(){ main.innerHTML = ''; const tpl = document.getElementById('tpl-products').content.cloneNode(true); main.appendChild(tpl);
-      const tbody = document.querySelector('#products-table tbody'); function refresh(){ tbody.innerHTML = ''; state.products.forEach((p,i)=>{ const tr=document.createElement('tr'); tr.innerHTML = `<td>${p.sku}</td><td>${p.name}</td><td>₹${Number(p.price).toFixed(2)}</td><td>${p.qty}</td><td>${p.barcode||''}</td><td><button class="btn" data-i="${i}" data-act="edit">Edit</button> <button class="btn" data-i="${i}" data-act="del">Delete</button></td>`; tbody.appendChild(tr) }); }
-      refresh(); document.getElementById('add-product-btn').addEventListener('click',()=>{ document.getElementById('product-form').style.display='block'; document.getElementById('product-form-title').textContent='Add Product'; document.getElementById('p-sku').value=''; document.getElementById('p-name').value=''; document.getElementById('p-price').value=0; document.getElementById('p-qty').value=0; document.getElementById('p-barcode').value=''; })
-      document.getElementById('cancel-product').addEventListener('click',()=>document.getElementById('product-form').style.display='none')
-      document.getElementById('form-product').addEventListener('submit',e=>{
-        e.preventDefault(); const sku=document.getElementById('p-sku').value.trim()||Date.now().toString(); const name=document.getElementById('p-name').value.trim(); const price=parseFloat(document.getElementById('p-price').value)||0; const qty=parseInt(document.getElementById('p-qty').value)||0; const barcode=document.getElementById('p-barcode').value.trim();
-        // if SKU exists update
-        const idx = state.products.findIndex(x=>x.sku===sku);
-        if(idx>=0){ state.products[idx]={sku,name,price,qty,barcode} } else { state.products.push({sku,name,price,qty,barcode}) }
-        saveSite(); refresh(); document.getElementById('product-form').style.display='none';
-      })
-      tbody.addEventListener('click',e=>{ const t=e.target; const act=t.dataset.act; const i=parseInt(t.dataset.i); if(act==='del'){ if(confirm('Delete product?')){ state.products.splice(i,1); saveSite(); refresh(); } } if(act==='edit'){ const p=state.products[i]; document.getElementById('product-form').style.display='block'; document.getElementById('product-form-title').textContent='Edit Product'; document.getElementById('p-sku').value=p.sku; document.getElementById('p-name').value=p.name; document.getElementById('p-price').value=p.price; document.getElementById('p-qty').value=p.qty; document.getElementById('p-barcode').value=p.barcode; }
-      })
-      document.getElementById('download-products').addEventListener('click',()=>downloadCSV(state.products,['sku','name','price','qty','barcode'],'products.csv'))
-    }
-
-    function renderUsers(openForm=false){ main.innerHTML=''; const tpl = document.getElementById('tpl-users').content.cloneNode(true); main.appendChild(tpl);
-      const tbody = document.querySelector('#users-table tbody'); function refresh(){ tbody.innerHTML=''; state.users.forEach((u,i)=>{ const tr=document.createElement('tr'); tr.innerHTML = `<td>${u.email}</td><td>${u.first} ${u.last||''}</td><td>${u.phone||''}</td><td>${u.role}</td><td>${u.doj||''}</td><td><button class="btn" data-i="${i}" data-act="edit">Edit</button> <button class="btn" data-i="${i}" data-act="del">Delete</button></td>`; tbody.appendChild(tr) }) }
-      refresh(); document.getElementById('create-user-btn').addEventListener('click',()=>{ document.getElementById('user-form').style.display='block' })
-      document.getElementById('cancel-user').addEventListener('click',()=>document.getElementById('user-form').style.display='none')
-      document.getElementById('form-user').addEventListener('submit',e=>{ e.preventDefault(); const email=document.getElementById('u-email').value.trim(); const first=document.getElementById('u-first').value.trim(); const last=document.getElementById('u-last').value.trim(); const phone=document.getElementById('u-phone').value.trim(); const role=document.getElementById('u-role').value; const doj=document.getElementById('u-doj').value; const idx = state.users.findIndex(x=>x.email===email); if(idx>=0){ state.users[idx]={email,first,last,phone,role,doj} } else { state.users.push({email,first,last,phone,role,doj}) } saveSite(); refresh(); document.getElementById('user-form').style.display='none'; })
-      tbody.addEventListener('click',e=>{ const t=e.target; const act=t.dataset.act; const i=parseInt(t.dataset.i); if(act==='del'){ if(confirm('Delete user?')){ state.users.splice(i,1); saveSite(); refresh(); } } if(act==='edit'){ const u=state.users[i]; document.getElementById('user-form').style.display='block'; document.getElementById('u-email').value=u.email; document.getElementById('u-first').value=u.first; document.getElementById('u-last').value=u.last; document.getElementById('u-phone').value=u.phone; document.getElementById('u-role').value=u.role; document.getElementById('u-doj').value=u.doj||''; }
-      })
-      document.getElementById('download-users').addEventListener('click',()=>downloadCSV(state.users,['email','first','last','phone','role','doj'],'users.csv'))
-      if(openForm) document.getElementById('user-form').style.display='block'
-    }
-
-    function renderBilling(){ main.innerHTML=''; const tpl = document.getElementById('tpl-billing').content.cloneNode(true); main.appendChild(tpl);
-      const cart = [];
-      const cartTbody = document.querySelector('#cart-table tbody');
-
-      // ensure customers array exists
-      if(!Array.isArray(state.customers)) state.customers = [];
-
-      function populateCustomerSelect(){ const sel = document.getElementById('saved-customers'); sel.innerHTML = '<option value="__new">-- New customer --</option>' + state.customers.map((c,i)=>`<option value="${i}">${c.name} — ${c.phone||c.email||''}</option>`).join(''); }
-
-      function refreshCart(){ cartTbody.innerHTML = ''; cart.forEach((c,i)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${c.sku}</td><td>${c.name}</td><td>₹${Number(c.price).toFixed(2)}</td><td><input min="0" type="number" data-i="${i}" class="qty-input" value="${c.qty}" style="width:70px"/></td><td>₹${(c.price*c.qty).toFixed(2)}</td><td><button class="btn" data-i="${i}" data-act="del">Remove</button></td>`; cartTbody.appendChild(tr) }); updateTotals(); }
-
-      function addToCart(p){ const existing = cart.find(x=>x.sku===p.sku); if(existing){ existing.qty += 1 } else { cart.push({sku:p.sku,name:p.name,price:parseFloat(p.price)||0,qty:1}) } refreshCart(); }
-
-      function updateTotals(){ const subtotal = cart.reduce((s,i)=>s + i.price*i.qty,0); const discount = parseFloat(document.getElementById('bill-discount').value)||0; const taxable = Math.max(0, subtotal - discount); const gstPercent = parseFloat(document.getElementById('bill-gst').value)||0; const gstAmt = taxable * (gstPercent/100); const total = taxable + gstAmt; document.getElementById('sub-total').textContent = subtotal.toFixed(2); document.getElementById('disc-amt').textContent = discount.toFixed(2); document.getElementById('taxable-amt').textContent = taxable.toFixed(2); document.getElementById('gst-amt').textContent = gstAmt.toFixed(2); document.getElementById('total-amt').textContent = total.toFixed(2); }
-
-      // search
-      document.getElementById('search-product').addEventListener('keydown',e=>{ if(e.key==='Enter'){ const q=e.target.value.trim().toLowerCase(); if(!q) return; const p = state.products.find(x=> (x.sku||'').toLowerCase()===q || (x.barcode||'').toLowerCase()===q || (x.name||'').toLowerCase().includes(q) ); if(p) addToCart(p); else alert('Product not found'); e.target.value=''; } })
-      // scan mock
-      document.getElementById('scan-barcode').addEventListener('click',()=>{ const code=prompt('Enter barcode or SKU to scan'); if(!code) return; const p=state.products.find(x=>x.barcode===code||x.sku===code); if(p) addToCart(p); else alert('Not found'); })
-
-      // customer select behavior
-      populateCustomerSelect();
-      document.getElementById('saved-customers').addEventListener('change',e=>{
-        const v = e.target.value;
-        if(v === '__new'){ document.getElementById('bill-customer').value=''; document.getElementById('bill-dob').value=''; document.getElementById('bill-phone').value=''; document.getElementById('bill-email').value=''; return }
-        const c = state.customers[parseInt(v)]; if(c){ document.getElementById('bill-customer').value = c.name||''; document.getElementById('bill-dob').value = c.dob||''; document.getElementById('bill-phone').value = c.phone||''; document.getElementById('bill-email').value = c.email||''; }
-      })
-
-      // Save customer into customers list
-      document.getElementById('btn-save-customer').addEventListener('click',()=>{
-        const name = document.getElementById('bill-customer').value.trim(); const dob = document.getElementById('bill-dob').value; const phone = document.getElementById('bill-phone').value.trim(); const email = document.getElementById('bill-email').value.trim();
-        if(!name){ alert('Enter customer name'); return }
-        state.customers.push({name, dob, phone, email}); saveSite(); populateCustomerSelect(); alert('Customer saved');
-      })
-
-      // Add current customer to Users list (creates a user record)
-      document.getElementById('btn-add-customer-to-users').addEventListener('click',()=>{
-        const name = document.getElementById('bill-customer').value.trim(); const phone = document.getElementById('bill-phone').value.trim(); const email = document.getElementById('bill-email').value.trim(); if(!name || !email){ if(!confirm('Customer missing name or email. Continue to add with available info?')===false) return }
-        const parts = name.split(' '); const first = parts.shift()||name; const last = parts.join(' ');
-        const idx = state.users.findIndex(u=>u.email===email && email);
-        if(idx>=0){ alert('User with this email already exists'); return }
-        state.users.push({email: email||`cust_${Date.now()}@local`, first, last, phone, role:'customer', doj: (new Date()).toISOString().slice(0,10)}); saveSite(); alert('Added customer to users');
-      })
-
-      const cartTbodyEl = cartTbody;
-      cartTbodyEl.addEventListener('click',e=>{ const t=e.target; const act=t.dataset.act; const i=parseInt(t.dataset.i); if(act==='del'){ cart.splice(i,1); refreshCart(); } })
-      cartTbodyEl.addEventListener('change',e=>{ if(e.target.classList.contains('qty-input')){ const i=parseInt(e.target.dataset.i); const v=parseInt(e.target.value)||0; cart[i].qty = v; refreshCart(); } })
-
-      document.getElementById('bill-discount').addEventListener('input',updateTotals)
-      document.getElementById('bill-gst').addEventListener('input',updateTotals)
-
-      document.getElementById('finalise-bill').addEventListener('click',()=>{
-        if(cart.length===0){ alert('Cart empty'); return }
-        const customer = {name:document.getElementById('bill-customer').value, dob:document.getElementById('bill-dob').value, phone:document.getElementById('bill-phone').value, email:document.getElementById('bill-email').value}
-        const subtotal = cart.reduce((s,i)=>s + i.price*i.qty,0); const discount = parseFloat(document.getElementById('bill-discount').value)||0; const taxable = Math.max(0, subtotal - discount); const gst = taxable * ((parseFloat(document.getElementById('bill-gst').value)||0)/100); const total = taxable + gst;
-        const sale = {id:Date.now(), date:new Date().toISOString(), customer, items:JSON.parse(JSON.stringify(cart)), subtotal, discount, gst, total}
-        state.sales.push(sale); // decrement stock
-        cart.forEach(ci=>{ const p = state.products.find(x=>x.sku===ci.sku); if(p) p.qty = Math.max(0,(p.qty||0)-ci.qty); });
-        saveSite(); alert('Sale completed ₹'+total.toFixed(2)); renderBilling();
-      })
-
-      document.getElementById('clear-cart').addEventListener('click',()=>{ if(confirm('Clear cart?')){ while(cart.length) cart.pop(); refreshCart(); } })
-      document.getElementById('print-bill').addEventListener('click',()=>{ window.print(); })
-
-      // initial
-      populateCustomerSelect();
-      refreshCart();
-    }
-
-    function renderReports(){ main.innerHTML=''; const tpl = document.getElementById('tpl-reports').content.cloneNode(true); main.appendChild(tpl);
-      const reportsArea = document.getElementById('reports-area');
-      function gen(){ const mode = document.getElementById('report-mode').value; const from=document.getElementById('report-from').value; const to=document.getElementById('report-to').value; let filtered = state.sales.slice(); if(mode==='daily'){ const today = new Date().toISOString().slice(0,10); filtered = filtered.filter(s=>s.date.slice(0,10)===today); } else if(mode==='monthly'){ const now=new Date(); const m = String(now.getMonth()+1).padStart(2,'0'); const y = now.getFullYear(); filtered = filtered.filter(s=> s.date.slice(0,7)===`${y}-${m}`); } else if(mode==='custom'){ if(!from || !to){ alert('Select from & to for custom range'); return } const f=new Date(from), t=new Date(to); filtered = filtered.filter(s=>{ const d=new Date(s.date).setHours(0,0,0,0); return d >= f.setHours(0,0,0,0) && d <= t.setHours(0,0,0,0) }); }
-        // summary
-        const total = filtered.reduce((a,b)=>a + (b.total||0),0); reportsArea.innerHTML = `<div class="card small"><div class="muted">Sales found: <b>${filtered.length}</b> • Total: ₹${total.toFixed(2)}</div><pre style="white-space:pre-wrap">${filtered.map(s=>`${new Date(s.date).toLocaleString()} — ₹${s.total.toFixed(2)} — items:${s.items.length}`).join('\n')}</pre></div>`;
-        // store last filter for download
-        reportsArea.dataset.csv = JSON.stringify(filtered);
-      }
-      document.getElementById('generate-report').addEventListener('click',gen);
-      document.getElementById('download-report').addEventListener('click',()=>{
-        const json = reportsArea.dataset.csv ? JSON.parse(reportsArea.dataset.csv) : state.sales; downloadCSV(json,['id','date','customer','subtotal','discount','gst','total'],'report.csv')
-      })
-    }
-
-    // utility downloads
-    function downloadJSON(obj,filename){ const blob = new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
-    function downloadCSV(arr,keys,filename){ if(!arr) arr=[]; const rows = [keys.join(',')].concat(arr.map(o=> keys.map(k=>{
-      let v = o[k]; if(v===undefined){ // for nested customer
-        if(k==='customer' && o.customer) v = JSON.stringify(o.customer); else v=''
-      }
-      if(typeof v==='string') return '"'+v.replace(/"/g,'""')+'"'; return v
-    }).join(',')));
-      const blob = new Blob([rows.join('\n')],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url);
-    }
-
-    // initial view
-    if(!state.currentUser || !state.currentUser.name) state.currentUser = {name:'Admin', email:'admin@nammo', role:'admin'}; saveSite(); renderDashboard();
-  </script>
-</body>
-</html>
+// USERS
+function renderUsers(){
+  users = load(STORAGE_USERS);
+  usersTable.innerHTML = '';
+  users.forEach(u=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${escapeHtml(u.first+' '+u.last)}</td><td>${escapeHtml(u.email)}</td><td>${u.role}</td><td>${u.expiry||''}</td>
+      <td>${session && session.role==='admin' ? <button class="btn" data-id="${u.id}" data-act="prom">Promote</button> <button class="btn ghost" data-id="${u.id}" data-act="del">Delete</button> : ''}</td>`;
+    usersTable.appendChild(tr);
+  });
+  [...usersTable.querySelectorAll('button')].forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const id = e.target.getAttribute('data-id'); const act = e.target.getAttribute('data-act');
+      if(act==='prom'){ if(!confirm('Make this user admin?')) return; const u = users.find(x=>x.id===id); if(u){ u.role='admin'; save(STORAGE_USERS, users); renderUsers(); alert('Promoted');} }
