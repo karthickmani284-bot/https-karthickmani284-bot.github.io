@@ -1,22 +1,64 @@
-<!-- Insert this at the very top of your <script> in index.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bill 24*7 — Demo</title>
+  <style>
+    :root{--accent:#2b7aeb;--muted:#666;--bg:#f5f8fb;--card:#fff}
+    *{box-sizing:border-box;font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+    body{margin:0;background:var(--bg);color:#111}
+    header{background:linear-gradient(90deg,var(--accent),#1e90ff);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+    header h1{margin:0;font-size:20px}
+    main{padding:18px;max-width:1100px;margin:18px auto}
+    .card{background:var(--card);border-radius:12px;box-shadow:0 6px 18px rgba(20,30,60,0.07);padding:16px;margin-bottom:16px}
+    .row{display:flex;gap:12px;align-items:center}
+    .col{flex:1}
+    input,select,button,textarea{padding:10px;border-radius:8px;border:1px solid #e6eefc;font-size:14px}
+    button{cursor:pointer;background:var(--accent);color:#fff;border:none}
+    .muted{color:var(--muted);font-size:13px}
+    nav{display:flex;gap:8px}
+    nav button{background:transparent;color:#fff;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.15)}
+    .grid-3{display:grid;grid-template-columns:1fr 380px;gap:12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #f0f4fb;text-align:left}
+    .small{font-size:13px}
+    footer{margin-top:8px;text-align:center;color:var(--muted);font-size:13px}
+    @media(max-width:900px){.grid-3{grid-template-columns:1fr}nav{flex-wrap:wrap}}
+    /* error-badge style */
+    #error-ui-container { display:flex; gap:8px; align-items:center; }
+    #error-badge { background:linear-gradient(90deg,#e53935,#ff4d4f); color:#fff; border:none; padding:6px 10px; border-radius:8px; cursor:pointer; }
+    #error-clear { background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.15); padding:6px 8px; border-radius:8px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Bill 24*7 — Demo</h1>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div id="user-badge" class="muted">Not logged</div>
+      <nav id="main-nav" style="display:none"></nav>
+    </div>
+  </header>
+
+  <main>
+    <div id="app"></div>
+    <footer class="muted">Software owned by - Karthick Subramanian</footer>
+  </main>
+
 <script>
+/* === CLIENT-SIDE ERROR CAPTURE (must be first so it catches other issues) === */
 (function(){
-  // keep last 100 errors
   const ERR_KEY = 'b24_errors';
   function readErrors(){ try{ return JSON.parse(localStorage.getItem(ERR_KEY)||'[]') }catch(e){return[]} }
-  function writeErrors(arr){ try{ localStorage.setItem(ERR_KEY, JSON.stringify(arr.slice(-100))) }catch(e){} }
-
+  function writeErrors(arr){ try{ localStorage.setItem(ERR_KEY, JSON.stringify(arr.slice(-200))) }catch(e){} }
   function pushError(obj){
     const arr = readErrors();
     arr.push(Object.assign({ts:new Date().toISOString()}, obj));
     writeErrors(arr);
-    // visible indicator
     const badge = document.getElementById('error-badge');
     if(badge) badge.style.display='inline-block';
     console.error('Captured error:', obj);
   }
-
-  // window error
   window.addEventListener('error', function(ev){
     try{
       pushError({
@@ -30,8 +72,6 @@
       });
     }catch(e){}
   });
-
-  // unhandled promise rejections
   window.addEventListener('unhandledrejection', function(ev){
     try{
       const reason = ev.reason;
@@ -44,13 +84,10 @@
     }catch(e){}
   });
 
-  // small UI hook in header (creates if missing)
   function ensureBadgeUI(){
-    // header exists? poll until present
     const tryOnce = function(){
       const header = document.querySelector('header');
       if(!header) return false;
-      // create badge container if missing
       let container = header.querySelector('#error-ui-container');
       if(!container){
         container = document.createElement('div');
@@ -60,56 +97,38 @@
         container.style.gap='8px';
         header.appendChild(container);
       }
-      // badge
       if(!document.getElementById('error-badge')){
         const b = document.createElement('button');
         b.id = 'error-badge';
         b.title = 'View client-side errors';
         b.textContent = 'Errors';
-        b.style.background='linear-gradient(90deg,#e53935,#ff4d4f)';
-        b.style.color='#fff';
-        b.style.border='none';
-        b.style.padding='6px 10px';
-        b.style.borderRadius='8px';
-        b.style.cursor='pointer';
         b.style.display = (readErrors().length ? 'inline-block' : 'none');
         b.onclick = showErrorModal;
         container.appendChild(b);
       }
-      // clear button
       if(!document.getElementById('error-clear')){
         const c = document.createElement('button');
         c.id = 'error-clear';
         c.textContent = 'Clear';
-        c.style.background='transparent';
-        c.style.color='#fff';
-        c.style.border='1px solid rgba(255,255,255,0.15)';
-        c.style.padding='6px 8px';
-        c.style.borderRadius='8px';
-        c.style.cursor='pointer';
         c.onclick = function(){
           if(!confirm('Clear saved client-side errors?')) return;
           localStorage.removeItem(ERR_KEY);
-          document.getElementById('error-badge').style.display='none';
+          const badgeEl = document.getElementById('error-badge');
+          if(badgeEl) badgeEl.style.display='none';
           alert('Cleared');
         };
         container.appendChild(c);
       }
       return true;
     };
-
-    // try now, or after a short timeout (header may be created later)
-    if(!tryOnce()){
-      setTimeout(tryOnce, 300);
-      setTimeout(tryOnce, 1000);
-    }
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tryOnce);
+    else tryOnce();
   }
 
   function showErrorModal(){
     const data = readErrors().slice().reverse();
-    // simple modal
     let overlay = document.getElementById('error-overlay');
-    if(overlay){ overlay.remove(); } // refresh
+    if(overlay){ overlay.remove(); }
     overlay = document.createElement('div');
     overlay.id = 'error-overlay';
     overlay.style.position='fixed';
@@ -143,7 +162,7 @@
     } else {
       const pre = document.createElement('pre');
       pre.style.maxHeight='60vh'; pre.style.overflow='auto'; pre.style.background='#f7f9fc'; pre.style.padding='12px'; pre.style.borderRadius='8px';
-      pre.textContent = data.map((e,i)=>`#${i+1} - ${e.ts} - ${e.type}\nMessage: ${e.message}\nFile: ${e.filename||''} ${e.lineno?':'+e.lineno:''}\nStack: ${e.stack||''}\nUserAgent: ${e.userAgent||''}\n---\n`).join('\\n');
+      pre.textContent = data.map((e,i)=>`#${i+1} - ${e.ts} - ${e.type}\nMessage: ${e.message}\nFile: ${e.filename||''} ${e.lineno?':'+e.lineno:''}\nStack: ${e.stack||''}\nUserAgent: ${e.userAgent||''}\n---\n`).join('\n');
       box.appendChild(pre);
     }
 
@@ -151,125 +170,83 @@
     document.body.appendChild(overlay);
   }
 
-  // expose for manual inspection in console
   window.__b24_readErrors = readErrors;
-  window.__b24_clearErrors = function(){ localStorage.removeItem(ERR_KEY); document.getElementById('error-badge') && (document.getElementById('error-badge').style.display='none'); };
+  window.__b24_clearErrors = function(){ localStorage.removeItem(ERR_KEY); const b=document.getElementById('error-badge'); if(b) b.style.display='none'; };
 
-  // init UI when DOM ready
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ensureBadgeUI);
-  else ensureBadgeUI();
+  ensureBadgeUI();
 })();
-</script>
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Bill 24*7 — Demo</title>
-  <style>
-    :root{--accent:#2b7aeb;--muted:#666;--bg:#f5f8fb;--card:#fff}
-    *{box-sizing:border-box;font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
-    body{margin:0;background:var(--bg);color:#111}
-    header{background:linear-gradient(90deg,var(--accent),#1e90ff);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
-    header h1{margin:0;font-size:20px}
-    main{padding:18px;max-width:1100px;margin:18px auto}
-    .card{background:var(--card);border-radius:12px;box-shadow:0 6px 18px rgba(20,30,60,0.07);padding:16px;margin-bottom:16px}
-    .row{display:flex;gap:12px;align-items:center}
-    .col{flex:1}
-    input,select,button,textarea{padding:10px;border-radius:8px;border:1px solid #e6eefc;font-size:14px}
-    button{cursor:pointer;background:var(--accent);color:#fff;border:none}
-    .muted{color:var(--muted);font-size:13px}
-    nav{display:flex;gap:8px}
-    nav button{background:transparent;color:#fff;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.15)}
 
-    /* layout */
-    .grid-3{display:grid;grid-template-columns:1fr 380px;gap:12px}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px;border-bottom:1px solid #f0f4fb;text-align:left}
-    .small{font-size:13px}
-    footer{margin-top:8px;text-align:center;color:var(--muted);font-size:13px}
+/* === APP LOGIC === */
+const STORAGE_KEYS = {USERS:'b24_users', PRODUCTS:'b24_products', CUSTOMERS:'b24_customers', INVOICES:'b24_invoices', SESSION:'b24_session'};
 
-    /* responsive */
-    @media(max-width:900px){.grid-3{grid-template-columns:1fr}nav{flex-wrap:wrap}}
-  </style>
-</head>
-<body>
-  <header>
-    <h1>Bill 24*7 — Demo</h1>
-    <div style="display:flex;gap:10px;align-items:center">
-      <div id="user-badge" class="muted">Not logged</div>
-      <nav id="main-nav" style="display:none"></nav>
-    </div>
-  </header>
-
-  <main>
-    <div id="app"></div>
-    <footer class="muted">Software owned by - Karthick Subramanian</footer>
-  </main>
-
-<script>
-// Simple single-file app using localStorage to simulate backend.
-// Features implemented:
-// - Signup / Login (user records with roles Admin/Staff)
-// - User list (Admin only) with fields: Name, Phone, Email, Role, DOJ
-// - Product catalog (add/edit)
-// - Customers
-// - Raise bill (select customer, add products, save invoice)
-// - Reports (daily/monthly/custom) + CSV download
-// - Logout
-
-const STORAGE_KEYS = {USERS:'b24_users', PRODUCTS:'b24_products', CUSTOMERS:'b24_customers', INVOICES:'b24_invoices', SESSION:'b24_session'}
-
-// bootstrap with default admin if none
-function seed(){
-  if(!localStorage.getItem(STORAGE_KEYS.USERS)){
-    const admin={id:id(),first:'Karthick',last:'Subramanian',phone:'',email:'admin@demo.local',role:'Admin',doj: new Date().toISOString().slice(0,10)}
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify([admin]))
-  }
-  if(!localStorage.getItem(STORAGE_KEYS.PRODUCTS)){
-    const samples=[{id:id(),name:'Sample Product A',price:199,stock:50},{id:id(),name:'Sample Product B',price:49,stock:200}]
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(samples))
-  }
-  if(!localStorage.getItem(STORAGE_KEYS.CUSTOMERS)){
-    localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify([]))
-  }
-  if(!localStorage.getItem(STORAGE_KEYS.INVOICES)){
-    localStorage.setItem(STORAGE_KEYS.INVOICES, JSON.stringify([]))
-  }
-}
-
-// small helpers
-function id(){return 'id_'+Math.random().toString(36).slice(2,9)}
+function id(){return 'id_'+Math.random().toString(36).slice(2,9);}
 function read(key){try{return JSON.parse(localStorage.getItem(key)||'null')}catch(e){return null}}
 function write(key,val){localStorage.setItem(key, JSON.stringify(val))}
 
-// UI mounting
-const app = document.getElementById('app')
-const nav = document.getElementById('main-nav')
-const userBadge = document.getElementById('user-badge')
+function seed(){
+  if(!localStorage.getItem(STORAGE_KEYS.USERS)){
+    const admin={id:id(),first:'Karthick',last:'Subramanian',phone:'',email:'admin@demo.local',role:'Admin',doj: new Date().toISOString().slice(0,10)};
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify([admin]));
+  }
+  if(!localStorage.getItem(STORAGE_KEYS.PRODUCTS)){
+    const samples=[{id:id(),name:'Sample Product A',price:199,stock:50},{id:id(),name:'Sample Product B',price:49,stock:200}];
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(samples));
+  }
+  if(!localStorage.getItem(STORAGE_KEYS.CUSTOMERS)){
+    localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify([]));
+  }
+  if(!localStorage.getItem(STORAGE_KEYS.INVOICES)){
+    localStorage.setItem(STORAGE_KEYS.INVOICES, JSON.stringify([]));
+  }
+}
 
-seed()
-renderApp()
+// DOM helper
+function el(tag,attrs,...children){
+  const e=document.createElement(tag);
+  if(attrs){
+    Object.keys(attrs).forEach(k=>{
+      if(k==='onclick') e.addEventListener('click',attrs[k]);
+      else if(k==='class') e.className=attrs[k];
+      else if(k==='style') e.style.cssText=attrs[k];
+      else if(k==='id') e.id=attrs[k];
+      else if(k==='type') e.type=attrs[k];
+      else if(k==='value') e.value=attrs[k];
+      else e.setAttribute(k,attrs[k]);
+    });
+  }
+  children.forEach(c=>{
+    if(typeof c==='string' || typeof c==='number') e.appendChild(document.createTextNode(c));
+    else if(c) e.appendChild(c);
+  });
+  return e;
+}
+
+const app = document.getElementById('app');
+const nav = document.getElementById('main-nav');
+const userBadge = document.getElementById('user-badge');
+
+seed();
+renderApp();
 
 function renderApp(){
-  const session = read(STORAGE_KEYS.SESSION)
-  renderHeader(session)
-  if(!session) renderAuth()
-  else renderDashboard()
+  const session = read(STORAGE_KEYS.SESSION);
+  renderHeader(session);
+  if(!session) renderAuth();
+  else renderDashboard();
 }
 
 function renderHeader(session){
-  nav.innerHTML=''
+  nav.innerHTML='';
   if(session){
-    userBadge.textContent = session.first+' '+(session.last||'')+' ('+session.role+')'
-    const buttons = [{k:'dashboard',t:'Dashboard'},{k:'products',t:'Products'},{k:'customers',t:'Customers'},{k:'invoices',t:'Raise Bill'},{k:'reports',t:'Reports'}]
-    buttons.forEach(b=>{const btn=document.createElement('button');btn.textContent=b.t;btn.onclick=()=>navigate(b.k);nav.appendChild(btn)})
-    const usersBtn=document.createElement('button');usersBtn.textContent='Users';usersBtn.onclick=()=>navigate('users');nav.appendChild(usersBtn)
-    const logoutBtn=document.createElement('button');logoutBtn.textContent='Logout';logoutBtn.onclick=logout;nav.appendChild(logoutBtn)
-    nav.style.display='flex'
+    userBadge.textContent = session.first+' '+(session.last||'')+' ('+session.role+')';
+    const buttons = [{k:'dashboard',t:'Dashboard'},{k:'products',t:'Products'},{k:'customers',t:'Customers'},{k:'invoices',t:'Raise Bill'},{k:'reports',t:'Reports'}];
+    buttons.forEach(b=>{const btn=document.createElement('button');btn.textContent=b.t;btn.onclick=()=>navigate(b.k);nav.appendChild(btn)});
+    const usersBtn=document.createElement('button');usersBtn.textContent='Users';usersBtn.onclick=()=>navigate('users');nav.appendChild(usersBtn);
+    const logoutBtn=document.createElement('button');logoutBtn.textContent='Logout';logoutBtn.onclick=logout;nav.appendChild(logoutBtn);
+    nav.style.display='flex';
   } else {
-    userBadge.textContent='Not logged'
-    nav.style.display='none'
+    userBadge.textContent='Not logged';
+    nav.style.display='none';
   }
 }
 
@@ -282,11 +259,11 @@ function navigate(page){
   else if(page==='users') renderUsers();
 }
 
-function logout(){localStorage.removeItem(STORAGE_KEYS.SESSION);renderApp()}
+function logout(){ localStorage.removeItem(STORAGE_KEYS.SESSION); renderApp(); }
 
-// AUTH UI
+/* AUTH */
 function renderAuth(){
-  app.innerHTML=''
+  app.innerHTML='';
   const card = el('div',{class:'card'},
     el('h2',{},'Welcome to Bill 24*7 — Demo'),
     el('p',{class:'muted'},'Signup as Admin/Staff or login with existing account.'),
@@ -310,38 +287,38 @@ function renderAuth(){
          )
       )
     )
-  )
-  app.appendChild(card)
+  );
+  app.appendChild(card);
 }
 
 function login(){
-  const email = document.getElementById('login-email').value.trim()
-  const phone = document.getElementById('login-phone').value.trim()
-  const users = read(STORAGE_KEYS.USERS) || []
-  let user = users.find(u=>u.email===email || (phone && u.phone===phone))
-  if(!user){alert('No user found with that email/phone. Please signup.'); return}
-  write(STORAGE_KEYS.SESSION,user)
-  renderApp()
+  const email = document.getElementById('login-email').value.trim();
+  const phone = document.getElementById('login-phone').value.trim();
+  const users = read(STORAGE_KEYS.USERS) || [];
+  let user = users.find(u=>u.email===email || (phone && u.phone===phone));
+  if(!user){ alert('No user found with that email/phone. Please signup.'); return; }
+  write(STORAGE_KEYS.SESSION,user);
+  renderApp();
 }
 
 function signup(){
-  const first = document.getElementById('su-first').value.trim()
-  const last = document.getElementById('su-last').value.trim()
-  const phone = document.getElementById('su-phone').value.trim()
-  const email = document.getElementById('su-email').value.trim()
-  const role = document.getElementById('su-role').value
-  const doj = document.getElementById('su-doj').value
-  if(!first || !email){alert('First name and email required');return}
-  const users = read(STORAGE_KEYS.USERS) || []
-  const user = {id:id(),first,last,phone,email,role,doj}
-  users.push(user); write(STORAGE_KEYS.USERS,users)
-  write(STORAGE_KEYS.SESSION,user)
-  renderApp()
+  const first = document.getElementById('su-first').value.trim();
+  const last = document.getElementById('su-last').value.trim();
+  const phone = document.getElementById('su-phone').value.trim();
+  const email = document.getElementById('su-email').value.trim();
+  const role = document.getElementById('su-role').value;
+  const doj = document.getElementById('su-doj').value;
+  if(!first || !email){ alert('First name and email required'); return; }
+  const users = read(STORAGE_KEYS.USERS) || [];
+  const user = {id:id(),first,last,phone,email,role,doj};
+  users.push(user); write(STORAGE_KEYS.USERS,users);
+  write(STORAGE_KEYS.SESSION,user);
+  renderApp();
 }
 
-// Dashboard
+/* DASHBOARD */
 function renderDashboard(){
-  app.innerHTML=''
+  app.innerHTML='';
   const card = el('div',{class:'card'},
     el('h2',{},'Dashboard'),
     el('p',{class:'muted'},'Quick actions and recent invoices'),
@@ -351,168 +328,176 @@ function renderDashboard(){
     ),
     el('hr'),
     el('div',{}, renderRecentInvoices())
-  )
-  app.appendChild(card)
+  );
+  app.appendChild(card);
 }
 
 function renderRecentInvoices(){
-  const invoices = (read(STORAGE_KEYS.INVOICES)||[]).slice().reverse().slice(0,6)
-  if(!invoices.length) return el('p',{class:'muted'},'No invoices yet')
-  const tbl = el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Invoice'), el('th',{},'Customer'), el('th',{},'Total'), el('th',{},'Date'))))
-  const tbody = el('tbody',{}, ...invoices.map(inv=>el('tr',{}, el('td',{},inv.invoiceNo), el('td',{},inv.customerName||'Walk-in'), el('td',{},'₹'+inv.total.toFixed(2)), el('td',{},inv.date))))
-  tbl.appendChild(tbody)
-  return tbl
+  const invoices = (read(STORAGE_KEYS.INVOICES)||[]).slice().reverse().slice(0,6);
+  if(!invoices.length) return el('p',{class:'muted'},'No invoices yet');
+  const tbl = el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Invoice'), el('th',{},'Customer'), el('th',{},'Total'), el('th',{},'Date'))));
+  const tbody = el('tbody',{}, ...invoices.map(inv=>el('tr',{}, el('td',{},inv.invoiceNo), el('td',{},inv.customerName||'Walk-in'), el('td',{},'₹'+inv.total.toFixed(2)), el('td',{},inv.date))));
+  tbl.appendChild(tbody);
+  return tbl;
 }
 
-// PRODUCTS
+/* PRODUCTS */
 function renderProducts(){
-  app.innerHTML=''
-  const products = read(STORAGE_KEYS.PRODUCTS)||[]
-  const card = el('div',{class:'card'}, el('h2',{},'Products'), el('p',{class:'muted'},'Add and manage products'))
-  const form = el('div',{}, el('input',{id:'p-name',placeholder:'Product name'}), el('input',{id:'p-price',placeholder:'Price',type:'number'}), el('input',{id:'p-stock',placeholder:'Stock',type:'number'}), el('button',{onclick:addProduct},'Add product'))
-  card.appendChild(form)
-  const table = el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Name'), el('th',{},'Price'), el('th',{},'Stock'), el('th',{},'Actions'))))
-  const tbody = el('tbody',{}, ...products.map(p=>el('tr',{}, el('td',{},p.name), el('td',{},'₹'+p.price.toFixed(2)), el('td',{},p.stock), el('td',{}, el('button',{onclick:()=>editProduct(p.id)},'Edit'), ' ', el('button',{onclick:()=>deleteProduct(p.id)},'Delete')))))
-  table.appendChild(tbody)
-  card.appendChild(table)
-  app.appendChild(card)
+  app.innerHTML='';
+  const products = read(STORAGE_KEYS.PRODUCTS)||[];
+  const card = el('div',{class:'card'}, el('h2',{},'Products'), el('p',{class:'muted'},'Add and manage products'));
+  const form = el('div',{}, el('input',{id:'p-name',placeholder:'Product name'}), el('input',{id:'p-price',placeholder:'Price',type:'number'}), el('input',{id:'p-stock',placeholder:'Stock',type:'number'}), el('button',{onclick:addProduct},'Add product'));
+  card.appendChild(form);
+  const table = el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Name'), el('th',{},'Price'), el('th',{},'Stock'), el('th',{},'Actions'))));
+  const tbody = el('tbody',{}, ...products.map(p=>el('tr',{}, el('td',{},p.name), el('td',{},'₹'+p.price.toFixed(2)), el('td',{},p.stock), el('td',{}, el('button',{onclick:()=>editProduct(p.id)},'Edit'), ' ', el('button',{onclick:()=>deleteProduct(p.id)},'Delete')))));
+  table.appendChild(tbody);
+  card.appendChild(table);
+  app.appendChild(card);
 }
 function addProduct(){
-  const name=document.getElementById('p-name').value.trim(); const price=parseFloat(document.getElementById('p-price').value)||0; const stock=parseInt(document.getElementById('p-stock').value)||0
-  if(!name){alert('Product name required');return}
-  const products = read(STORAGE_KEYS.PRODUCTS)||[]
-  products.push({id:id(),name,price,stock})
-  write(STORAGE_KEYS.PRODUCTS,products)
-  renderProducts()
+  const name=document.getElementById('p-name').value.trim(); const price=parseFloat(document.getElementById('p-price').value)||0; const stock=parseInt(document.getElementById('p-stock').value)||0;
+  if(!name){ alert('Product name required'); return; }
+  const products = read(STORAGE_KEYS.PRODUCTS)||[];
+  products.push({id:id(),name,price,stock});
+  write(STORAGE_KEYS.PRODUCTS,products);
+  renderProducts();
 }
 function editProduct(pid){
-  const products = read(STORAGE_KEYS.PRODUCTS)||[]; const p = products.find(x=>x.id===pid)
-  if(!p) return
-  const name = prompt('Product name',p.name); if(name===null) return
-  const price = parseFloat(prompt('Price',p.price))||0; const stock = parseInt(prompt('Stock',p.stock))||0
-  p.name=name; p.price=price; p.stock=stock; write(STORAGE_KEYS.PRODUCTS,products); renderProducts()
+  const products = read(STORAGE_KEYS.PRODUCTS)||[]; const p = products.find(x=>x.id===pid);
+  if(!p) return;
+  const name = prompt('Product name',p.name); if(name===null) return;
+  const price = parseFloat(prompt('Price',p.price))||0; const stock = parseInt(prompt('Stock',p.stock))||0;
+  p.name=name; p.price=price; p.stock=stock; write(STORAGE_KEYS.PRODUCTS,products); renderProducts();
 }
-function deleteProduct(pid){ if(!confirm('Delete product?')) return; let products=read(STORAGE_KEYS.PRODUCTS)||[]; products=products.filter(p=>p.id!==pid); write(STORAGE_KEYS.PRODUCTS,products); renderProducts() }
+function deleteProduct(pid){ if(!confirm('Delete product?')) return; let products=read(STORAGE_KEYS.PRODUCTS)||[]; products=products.filter(p=>p.id!==pid); write(STORAGE_KEYS.PRODUCTS,products); renderProducts(); }
 
-// CUSTOMERS
+/* CUSTOMERS */
 function renderCustomers(){
-  app.innerHTML=''
-  const customers = read(STORAGE_KEYS.CUSTOMERS)||[]
-  const card = el('div',{class:'card'}, el('h2',{},'Customers'), el('p',{class:'muted'},'Add customer details (shown on invoice)'))
-  const form = el('div',{}, el('input',{id:'c-name',placeholder:'Name'}), el('input',{id:'c-phone',placeholder:'Phone'}), el('input',{id:'c-email',placeholder:'Email'}), el('input',{id:'c-dob',type:'date',placeholder:'DOB'}), el('button',{onclick:addCustomer},'Add customer'))
-  card.appendChild(form)
-  const table = el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Name'), el('th',{},'Phone'), el('th',{},'Email'), el('th',{},'Actions'))))
-  const tbody = el('tbody',{}, ...customers.map(c=>el('tr',{}, el('td',{},c.name), el('td',{},c.phone), el('td',{},c.email), el('td',{}, el('button',{onclick:()=>editCustomer(c.id)},'Edit'), ' ', el('button',{onclick:()=>deleteCustomer(c.id)},'Delete')))))
-  table.appendChild(tbody)
-  card.appendChild(table)
-  app.appendChild(card)
+  app.innerHTML='';
+  const customers = read(STORAGE_KEYS.CUSTOMERS)||[];
+  const card = el('div',{class:'card'}, el('h2',{},'Customers'), el('p',{class:'muted'},'Add customer details (shown on invoice)'));
+  const form = el('div',{}, el('input',{id:'c-name',placeholder:'Name'}), el('input',{id:'c-phone',placeholder:'Phone'}), el('input',{id:'c-email',placeholder:'Email'}), el('input',{id:'c-dob',type:'date',placeholder:'DOB'}), el('button',{onclick:addCustomer},'Add customer'));
+  card.appendChild(form);
+  const table = el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Name'), el('th',{},'Phone'), el('th',{},'Email'), el('th',{},'Actions'))));
+  const tbody = el('tbody',{}, ...customers.map(c=>el('tr',{}, el('td',{},c.name), el('td',{},c.phone), el('td',{},c.email), el('td',{}, el('button',{onclick:()=>editCustomer(c.id)},'Edit'), ' ', el('button',{onclick:()=>deleteCustomer(c.id)},'Delete')))));
+  table.appendChild(tbody);
+  card.appendChild(table);
+  app.appendChild(card);
 }
 function addCustomer(){
-  const name=document.getElementById('c-name').value.trim(); const phone=document.getElementById('c-phone').value.trim(); const email=document.getElementById('c-email').value.trim(); const dob=document.getElementById('c-dob').value
-  if(!name){alert('Name required');return}
-  const customers = read(STORAGE_KEYS.CUSTOMERS)||[]; customers.push({id:id(),name,phone,email,dob}); write(STORAGE_KEYS.CUSTOMERS,customers); renderCustomers()
+  const name=document.getElementById('c-name').value.trim(); const phone=document.getElementById('c-phone').value.trim(); const email=document.getElementById('c-email').value.trim(); const dob=document.getElementById('c-dob').value;
+  if(!name){ alert('Name required'); return; }
+  const customers = read(STORAGE_KEYS.CUSTOMERS)||[]; customers.push({id:id(),name,phone,email,dob}); write(STORAGE_KEYS.CUSTOMERS,customers); renderCustomers();
 }
-function editCustomer(cid){ const customers=read(STORAGE_KEYS.CUSTOMERS)||[]; const c=customers.find(x=>x.id===cid); if(!c) return; const name=prompt('Name',c.name); if(name===null) return; c.name=name; c.phone=prompt('Phone',c.phone); c.email=prompt('Email',c.email); write(STORAGE_KEYS.CUSTOMERS,customers); renderCustomers() }
-function deleteCustomer(cid){ if(!confirm('Delete customer?')) return; let customers=read(STORAGE_KEYS.CUSTOMERS)||[]; customers=customers.filter(x=>x.id!==cid); write(STORAGE_KEYS.CUSTOMERS,customers); renderCustomers() }
+function editCustomer(cid){ const customers=read(STORAGE_KEYS.CUSTOMERS)||[]; const c=customers.find(x=>x.id===cid); if(!c) return; const name=prompt('Name',c.name); if(name===null) return; c.name=name; c.phone=prompt('Phone',c.phone); c.email=prompt('Email',c.email); write(STORAGE_KEYS.CUSTOMERS,customers); renderCustomers(); }
+function deleteCustomer(cid){ if(!confirm('Delete customer?')) return; let customers=read(STORAGE_KEYS.CUSTOMERS)||[]; customers=customers.filter(x=>x.id!==cid); write(STORAGE_KEYS.CUSTOMERS,customers); renderCustomers(); }
 
-// INVOICES
+/* INVOICES */
 function renderInvoice(){
-  app.innerHTML=''
-  const products = read(STORAGE_KEYS.PRODUCTS)||[]
-  const customers = read(STORAGE_KEYS.CUSTOMERS)||[]
-  const invoiceItems = []
-  const card = el('div',{class:'card'}, el('h2',{},'Raise Bill'))
+  app.innerHTML='';
+  const products = read(STORAGE_KEYS.PRODUCTS)||[];
+  const customers = read(STORAGE_KEYS.CUSTOMERS)||[];
+  const invoiceItems = [];
+  const card = el('div',{class:'card'}, el('h2',{},'Raise Bill'));
   const ctrl = el('div',{},
-    el('div',{}, el('label',{},'Customer:'), el('select',{id:'inv-cust'}, el('option',{value:''},'Walk-in'), ...customers.map(c=>el('option',{value:c.id},c.name+' — '+(c.phone||'')))),
+    el('div',{}, el('label',{},'Customer:'), buildSelect('inv-cust', [{value:'',text:'Walk-in'}].concat(customers.map(c=>({value:c.id,text:c.name+' — '+(c.phone||'')})))),
     ),
-    el('div',{}, el('label',{},'Products:'), el('select',{id:'inv-prod'}, ...products.map(p=>el('option',{value:p.id},p.name+' — ₹'+p.price))), el('input',{id:'inv-qty',type:'number',value:1,style:'width:80px;margin-left:8px;'}), el('button',{onclick:addItemToInvoice},'Add'))
-  )
-  card.appendChild(ctrl)
-  const itemsDiv = el('div',{id:'inv-items'})
-  card.appendChild(itemsDiv)
-  const saveRow = el('div',{class:'row'}, el('div',{class:'col'}, el('button',{onclick:saveInvoice},'Save Invoice')))
-  card.appendChild(saveRow)
-  app.appendChild(card)
+    el('div',{}, el('label',{},'Products:'), buildSelect('inv-prod', products.map(p=>({value:p.id,text:p.name+' — ₹'+p.price}))), el('input',{id:'inv-qty',type:'number',value:1,style:'width:80px;margin-left:8px;'}), el('button',{onclick:addItemToInvoice},'Add'))
+  );
+  card.appendChild(ctrl);
+  const itemsDiv = el('div',{id:'inv-items'});
+  card.appendChild(itemsDiv);
+  const saveRow = el('div',{class:'row'}, el('div',{class:'col'}, el('button',{onclick:saveInvoice},'Save Invoice')));
+  card.appendChild(saveRow);
+  app.appendChild(card);
+
+  function buildSelect(id, options){
+    const s = document.createElement('select');
+    s.id = id;
+    options.forEach(o=>{
+      const opt = document.createElement('option');
+      opt.value = o.value;
+      opt.textContent = o.text;
+      s.appendChild(opt);
+    });
+    return s;
+  }
 
   function addItemToInvoice(){
-    const pid = document.getElementById('inv-prod').value; const qty = parseInt(document.getElementById('inv-qty').value)||1; const p = products.find(x=>x.id===pid); if(!p) return alert('Select product')
-    invoiceItems.push({id:p.id,name:p.name,price:p.price,qty})
-    renderItems()
+    const prodEl = document.getElementById('inv-prod');
+    if(!prodEl){ alert('No product selected'); return; }
+    const pid = prodEl.value; const qty = parseInt(document.getElementById('inv-qty').value)||1; const p = products.find(x=>x.id===pid);
+    if(!p) return alert('Select product');
+    invoiceItems.push({id:p.id,name:p.name,price:p.price,qty});
+    renderItems();
   }
   function renderItems(){
-    itemsDiv.innerHTML=''
-    if(!invoiceItems.length) itemsDiv.appendChild(el('p',{class:'muted'},'No items'))
+    itemsDiv.innerHTML='';
+    if(!invoiceItems.length) itemsDiv.appendChild(el('p',{class:'muted'},'No items'));
     else{
-      const tbl=el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Item'), el('th',{},'Qty'), el('th',{},'Price'), el('th',{},'Total'), el('th',{},'Actions'))))
-      const tbody = el('tbody',{}, ...invoiceItems.map((it,idx)=>el('tr',{}, el('td',{},it.name), el('td',{},it.qty), el('td',{},'₹'+it.price.toFixed(2)), el('td',{},'₹'+(it.price*it.qty).toFixed(2)), el('td',{}, el('button',{onclick:()=>{invoiceItems.splice(idx,1);renderItems()}},'Remove')))))
-      tbl.appendChild(tbody)
-      itemsDiv.appendChild(tbl)
-      const total = invoiceItems.reduce((s,i)=>s+i.price*i.qty,0)
-      itemsDiv.appendChild(el('div',{}, el('strong',{},'Total: ₹'+total.toFixed(2))))
+      const tbl=el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Item'), el('th',{},'Qty'), el('th',{},'Price'), el('th',{},'Total'), el('th',{},'Actions'))));
+      const tbody = el('tbody',{}, ...invoiceItems.map((it,idx)=>el('tr',{}, el('td',{},it.name), el('td',{},it.qty), el('td',{},'₹'+it.price.toFixed(2)), el('td',{},'₹'+(it.price*it.qty).toFixed(2)), el('td',{}, el('button',{onclick:()=>{invoiceItems.splice(idx,1);renderItems()}},'Remove')))));
+      tbl.appendChild(tbody);
+      itemsDiv.appendChild(tbl);
+      const total = invoiceItems.reduce((s,i)=>s+i.price*i.qty,0);
+      itemsDiv.appendChild(el('div',{}, el('strong',{},'Total: ₹'+total.toFixed(2))));
     }
   }
   function saveInvoice(){
-    const session=read(STORAGE_KEYS.SESSION); if(!session) return alert('Login required')
-    if(!invoiceItems.length) return alert('Add items')
-    const custId = document.getElementById('inv-cust').value; const customers = read(STORAGE_KEYS.CUSTOMERS)||[]; const cust = customers.find(c=>c.id===custId)
-    const total = invoiceItems.reduce((s,i)=>s+i.price*i.qty,0)
-    const invoices = read(STORAGE_KEYS.INVOICES)||[]
-    const invoice = {id:id(),invoiceNo:'INV-'+(invoices.length+1).toString().padStart(4,'0'),items:invoiceItems,date:new Date().toISOString().slice(0,10),total,customerId:custId,customerName:cust?cust.name:'Walk-in',createdBy:session.email}
-    invoices.push(invoice); write(STORAGE_KEYS.INVOICES,invoices)
-    alert('Invoice saved: '+invoice.invoiceNo)
-    renderInvoice()
+    const session=read(STORAGE_KEYS.SESSION); if(!session) return alert('Login required');
+    if(!invoiceItems.length) return alert('Add items');
+    const custId = document.getElementById('inv-cust').value; const customersData = read(STORAGE_KEYS.CUSTOMERS)||[]; const cust = customersData.find(c=>c.id===custId);
+    const total = invoiceItems.reduce((s,i)=>s+i.price*i.qty,0);
+    const invoices = read(STORAGE_KEYS.INVOICES)||[];
+    const invoice = {id:id(),invoiceNo:'INV-'+(invoices.length+1).toString().padStart(4,'0'),items:invoiceItems,date:new Date().toISOString().slice(0,10),total,customerId:custId,customerName:cust?cust.name:'Walk-in',createdBy:session.email};
+    invoices.push(invoice); write(STORAGE_KEYS.INVOICES,invoices);
+    alert('Invoice saved: '+invoice.invoiceNo);
+    renderInvoice();
   }
 }
 
-// Reports
+/* REPORTS */
 function renderReports(){
-  app.innerHTML=''
-  const card = el('div',{class:'card'}, el('h2',{},'Reports'))
-  card.appendChild(el('div',{}, el('label',{},'From:'), el('input',{type:'date',id:'r-from',value:new Date().toISOString().slice(0,10)}), el('label',{},'To:'), el('input',{type:'date',id:'r-to',value:new Date().toISOString().slice(0,10)}), el('button',{onclick:generateReport},'Generate'), el('button',{onclick:downloadCSV},'Download CSV')))
-  card.appendChild(el('div',{id:'r-results'}))
-  app.appendChild(card)
+  app.innerHTML='';
+  const card = el('div',{class:'card'}, el('h2',{},'Reports'));
+  card.appendChild(el('div',{}, el('label',{},'From:'), el('input',{type:'date',id:'r-from',value:new Date().toISOString().slice(0,10)}), el('label',{},'To:'), el('input',{type:'date',id:'r-to',value:new Date().toISOString().slice(0,10)}), el('button',{onclick:generateReport},'Generate'), el('button',{onclick:downloadCSV},'Download CSV')));
+  card.appendChild(el('div',{id:'r-results'}));
+  app.appendChild(card);
 }
 function generateReport(){
-  const from=document.getElementById('r-from').value; const to=document.getElementById('r-to').value
-  const invoices = read(STORAGE_KEYS.INVOICES)||[]
-  const res = invoices.filter(inv=>inv.date>=from && inv.date<=to)
-  const elr = document.getElementById('r-results'); elr.innerHTML=''
-  if(!res.length) return elr.appendChild(el('p',{class:'muted'},'No invoices in range'))
-  const table = el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Invoice'), el('th',{},'Date'), el('th',{},'Customer'), el('th',{},'Total'))))
-  const tbody = el('tbody',{}, ...res.map(inv=>el('tr',{}, el('td',{},inv.invoiceNo), el('td',{},inv.date), el('td',{},inv.customerName), el('td',{},'₹'+inv.total.toFixed(2)))))
-  table.appendChild(tbody)
-  elr.appendChild(table)
+  const from=document.getElementById('r-from').value; const to=document.getElementById('r-to').value;
+  const invoices = read(STORAGE_KEYS.INVOICES)||[];
+  const res = invoices.filter(inv=>inv.date>=from && inv.date<=to);
+  const elr = document.getElementById('r-results'); elr.innerHTML='';
+  if(!res.length) return elr.appendChild(el('p',{class:'muted'},'No invoices in range'));
+  const table = el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Invoice'), el('th',{},'Date'), el('th',{},'Customer'), el('th',{},'Total'))));
+  const tbody = el('tbody',{}, ...res.map(inv=>el('tr',{}, el('td',{},inv.invoiceNo), el('td',{},inv.date), el('td',{},inv.customerName), el('td',{},'₹'+inv.total.toFixed(2)))));
+  table.appendChild(tbody); elr.appendChild(table);
 }
 function downloadCSV(){
-  const from=document.getElementById('r-from').value; const to=document.getElementById('r-to').value
-  const invoices = read(STORAGE_KEYS.INVOICES)||[]
-  const res = invoices.filter(inv=>inv.date>=from && inv.date<=to)
-  if(!res.length) return alert('No data')
-  const rows = [['Invoice','Date','Customer','Total']].concat(res.map(r=>[r.invoiceNo,r.date,r.customerName,''+r.total]))
-  const csv = rows.map(r=>r.map(cell=>'"'+String(cell).replace(/"/g,'""')+'"').join(',')).join('\n')
-  const blob = new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob)
-  const a=document.createElement('a'); a.href=url; a.download='report_'+from+'_'+to+'.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url)
+  const from=document.getElementById('r-from').value; const to=document.getElementById('r-to').value;
+  const invoices = read(STORAGE_KEYS.INVOICES)||[];
+  const res = invoices.filter(inv=>inv.date>=from && inv.date<=to);
+  if(!res.length) return alert('No data');
+  const rows = [['Invoice','Date','Customer','Total']].concat(res.map(r=>[r.invoiceNo,r.date,r.customerName,''+r.total]));
+  const csv = rows.map(r=>r.map(cell=>'\"'+String(cell).replace(/\"/g,'\"\"')+'\"').join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='report_'+from+'_'+to+'.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 }
 
-// USERS (Admin only)
+/* USERS (Admin only) */
 function renderUsers(){
-  const session=read(STORAGE_KEYS.SESSION)
-  if(!session || session.role!=='Admin') return alert('Admin only')
-  app.innerHTML=''
-  const users = read(STORAGE_KEYS.USERS)||[]
-  const card = el('div',{class:'card'}, el('h2',{},'Users'), el('p',{class:'muted'},'Manage Admin and Staff accounts'))
-  const table = el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Name'), el('th',{},'Phone'), el('th',{},'Email'), el('th',{},'Role'), el('th',{},'DOJ'), el('th',{},'Actions'))))
-  const tbody = el('tbody',{}, ...users.map(u=>el('tr',{}, el('td',{},u.first+' '+(u.last||'')), el('td',{},u.phone||''), el('td',{},u.email), el('td',{},u.role), el('td',{},u.doj||''), el('td',{}, el('button',{onclick:()=>impersonate(u.id)},'Impersonate'), ' ', el('button',{onclick:()=>deleteUser(u.id)},'Delete')))))
-  table.appendChild(tbody)
-  card.appendChild(table)
-  app.appendChild(card)
+  const session=read(STORAGE_KEYS.SESSION);
+  if(!session || session.role!=='Admin') return alert('Admin only');
+  app.innerHTML='';
+  const users = read(STORAGE_KEYS.USERS)||[];
+  const card = el('div',{class:'card'}, el('h2',{},'Users'), el('p',{class:'muted'},'Manage Admin and Staff accounts'));
+  const table = el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Name'), el('th',{},'Phone'), el('th',{},'Email'), el('th',{},'Role'), el('th',{},'DOJ'), el('th',{},'Actions'))));
+  const tbody = el('tbody',{}, ...users.map(u=>el('tr',{}, el('td',{},u.first+' '+(u.last||'')), el('td',{},u.phone||''), el('td',{},u.email), el('td',{},u.role), el('td',{},u.doj||''), el('td',{}, el('button',{onclick:()=>impersonate(u.id)},'Impersonate'), ' ', el('button',{onclick:()=>deleteUser(u.id)},'Delete')))));
+  table.appendChild(tbody); card.appendChild(table); app.appendChild(card);
 }
-function impersonate(uid){ if(!confirm('Switch session to this user?')) return; const users=read(STORAGE_KEYS.USERS)||[]; const u=users.find(x=>x.id===uid); write(STORAGE_KEYS.SESSION,u); renderApp() }
-function deleteUser(uid){ if(!confirm('Delete user?')) return; let users=read(STORAGE_KEYS.USERS)||[]; users=users.filter(x=>x.id!==uid); write(STORAGE_KEYS.USERS,users); renderUsers() }
-
-// small DOM helper
-defaultExport = null
-function el(tag,attrs,...children){ const e=document.createElement(tag); if(attrs){ Object.keys(attrs).forEach(k=>{ if(k==='onclick') e.addEventListener('click',attrs[k]); else if(k==='class') e.className=attrs[k]; else if(k==='style') e.style.cssText=attrs[k]; else if(k==='id') e.id=attrs[k]; else if(k==='type') e.type=attrs[k]; else if(k==='value') e.value=attrs[k]; else e.setAttribute(k,attrs[k]) }) } children.forEach(c=>{ if(typeof c==='string' || typeof c==='number') e.appendChild(document.createTextNode(c)); else if(c) e.appendChild(c) }) return e }
+function impersonate(uid){ if(!confirm('Switch session to this user?')) return; const users=read(STORAGE_KEYS.USERS)||[]; const u=users.find(x=>x.id===uid); write(STORAGE_KEYS.SESSION,u); renderApp(); }
+function deleteUser(uid){ if(!confirm('Delete user?')) return; let users=read(STORAGE_KEYS.USERS)||[]; users=users.filter(x=>x.id!==uid); write(STORAGE_KEYS.USERS,users); renderUsers(); }
 
 </script>
 </body>
