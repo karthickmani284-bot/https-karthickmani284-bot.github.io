@@ -5,734 +5,353 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Bill 24*7 — Demo</title>
   <style>
-    /* Simple, clean styles */
-    :root{
-      --accent:#2b7aeb;
-      --muted:#6b7280;
-      --card:#ffffff;
-      --bg:#f3f6fb;
-      --danger:#e11d48;
-    }
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
-    body{background:var(--bg);color:#111;padding:18px;}
-    .app {
-      max-width:1100px;margin:0 auto;background:linear-gradient(180deg,#fff, #fbfdff);box-shadow:0 10px 30px rgba(19,38,76,0.06);
-      border-radius:12px;overflow:hidden;
-    }
-    header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--card);border-bottom:1px solid #eef2f7;}
-    .brand{display:flex;gap:12px;align-items:center}
-    .logo{width:44px;height:44px;background:var(--accent);border-radius:8px;color:white;display:grid;place-items:center;font-weight:700}
-    h1{margin:0;font-size:18px}
-    main{display:flex;gap:18px;padding:18px}
-    nav{width:220px;background:transparent;padding:12px;border-right:1px dashed #e6eef9}
-    nav button{display:block;width:100%;padding:10px;border-radius:8px;border:0;background:white;margin-bottom:8px;text-align:left;cursor:pointer}
-    .content{flex:1;padding:12px}
-    .card{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 4px 14px rgba(34,49,80,0.04);margin-bottom:12px}
+    :root{--accent:#2b7aeb;--muted:#666;--bg:#f5f8fb;--card:#fff}
+    *{box-sizing:border-box;font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+    body{margin:0;background:var(--bg);color:#111}
+    header{background:linear-gradient(90deg,var(--accent),#1e90ff);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+    header h1{margin:0;font-size:20px}
+    main{padding:18px;max-width:1100px;margin:18px auto}
+    .card{background:var(--card);border-radius:12px;box-shadow:0 6px 18px rgba(20,30,60,0.07);padding:16px;margin-bottom:16px}
     .row{display:flex;gap:12px;align-items:center}
-    .input,select,textarea{padding:10px;border-radius:8px;border:1px solid #e6eef9;min-width:0}
-    .small{font-size:13px;color:var(--muted)}
-    .btn{padding:10px 12px;border-radius:8px;border:0;background:var(--accent);color:white;cursor:pointer}
-    .btn.secondary{background:#fff;border:1px solid #e3eefb;color:var(--accent)}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px;border-bottom:1px solid #f1f5f9;text-align:left;font-size:14px}
+    .col{flex:1}
+    input,select,button,textarea{padding:10px;border-radius:8px;border:1px solid #e6eefc;font-size:14px}
+    button{cursor:pointer;background:var(--accent);color:#fff;border:none}
     .muted{color:var(--muted);font-size:13px}
-    .flex-between{display:flex;justify-content:space-between;align-items:center}
-    .right{margin-left:auto}
-    .toggle{display:inline-flex;gap:8px;align-items:center}
-    .pill{padding:6px 8px;border-radius:999px;background:#f1f8ff;border:1px solid #e6f0ff;color:var(--accent);font-weight:600}
-    .danger{background:#fff1f2;border:1px solid #fee2e2;color:var(--danger)}
-    .hidden{display:none}
-    footer{padding:10px;text-align:center;color:var(--muted);font-size:13px}
-    .form-row{display:flex;gap:8px;margin-bottom:8px}
-    .flex-wrap{display:flex;gap:8px;flex-wrap:wrap}
-    .note{font-size:13px;color:#0f172a;opacity:.6}
-    .highlight{background:#fef3c7;padding:8px;border-radius:8px}
-    input[type="date"]{padding:8px}
-    .disabled{opacity:.6;pointer-events:none}
+    nav{display:flex;gap:8px}
+    nav button{background:transparent;color:#fff;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.15)}
+
+    /* layout */
+    .grid-3{display:grid;grid-template-columns:1fr 380px;gap:12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #f0f4fb;text-align:left}
+    .small{font-size:13px}
+    footer{margin-top:8px;text-align:center;color:var(--muted);font-size:13px}
+
+    /* responsive */
+    @media(max-width:900px){.grid-3{grid-template-columns:1fr}nav{flex-wrap:wrap}}
   </style>
 </head>
 <body>
-  <div class="app" id="appRoot">
-    <!-- header dynamically updated -->
-  </div>
+  <header>
+    <h1>Bill 24*7 — Demo</h1>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div id="user-badge" class="muted">Not logged</div>
+      <nav id="main-nav" style="display:none"></nav>
+    </div>
+  </header>
 
-  <script>
-    /******************************************************
-     Bill 24*7 — Single-file demo app
-     Behavior:
-       - Login/Logout with admin credential
-       - Settings: Products, Customers, Business Location
-       - Billing: create bills, add products, apply discount
-       - Reports: Today, Yesterday, Custom Range
-       - Notifications: change log
-       - Logout clears session data so new login is fresh
-    ******************************************************/
+  <main>
+    <div id="app"></div>
+    <footer class="muted">Software owned by - Karthick Subramanian</footer>
+  </main>
 
-    // --- Default admin credentials (for demo)
-    const DEFAULT_ADMIN = { email: 'admin@bill247.com', password: 'admin123' };
+<script>
+// Simple single-file app using localStorage to simulate backend.
+// Features implemented:
+// - Signup / Login (user records with roles Admin/Staff)
+// - User list (Admin only) with fields: Name, Phone, Email, Role, DOJ
+// - Product catalog (add/edit)
+// - Customers
+// - Raise bill (select customer, add products, save invoice)
+// - Reports (daily/monthly/custom) + CSV download
+// - Logout
 
-    // --- Keys used in sessionStorage
-    const SKEY = {
-      admin: 'bill247_admin',         // stores current admin info (email,password)
-      products: 'bill247_products',
-      customers: 'bill247_customers',
-      bills: 'bill247_bills',
-      notifications: 'bill247_notifications',
-      businessLocation: 'bill247_bizloc',
-      currentUser: 'bill247_currentuser' // indicates logged-in flag
-    };
+const STORAGE_KEYS = {USERS:'b24_users', PRODUCTS:'b24_products', CUSTOMERS:'b24_customers', INVOICES:'b24_invoices', SESSION:'b24_session'}
 
-    // --- Utilities ---
-    function uid(prefix='id'){ return prefix + '_' + Math.random().toString(36).slice(2,9); }
-    function nowISO(){ return new Date().toISOString(); }
-    function todayDateStr(dt=new Date()){ return dt.toISOString().slice(0,10); }
-    function load(key){ try { const v = sessionStorage.getItem(key); return v ? JSON.parse(v) : null; } catch(e){return null;} }
-    function save(key,val){ sessionStorage.setItem(key, JSON.stringify(val)); }
-    function removeKey(key){ sessionStorage.removeItem(key); }
-    function clearAllData(){
-      // clear app data (but keep admin credential so login works)
-      [SKEY.products,SKEY.customers,SKEY.bills,SKEY.notifications,SKEY.businessLocation,SKEY.currentUser].forEach(k=>removeKey(k));
+// bootstrap with default admin if none
+function seed(){
+  if(!localStorage.getItem(STORAGE_KEYS.USERS)){
+    const admin={id:id(),first:'Karthick',last:'Subramanian',phone:'',email:'admin@demo.local',role:'Admin',doj: new Date().toISOString().slice(0,10)}
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify([admin]))
+  }
+  if(!localStorage.getItem(STORAGE_KEYS.PRODUCTS)){
+    const samples=[{id:id(),name:'Sample Product A',price:199,stock:50},{id:id(),name:'Sample Product B',price:49,stock:200}]
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS', JSON.stringify(samples))
+  }
+  if(!localStorage.getItem(STORAGE_KEYS.CUSTOMERS)){
+    localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify([]))
+  }
+  if(!localStorage.getItem(STORAGE_KEYS.INVOICES)){
+    localStorage.setItem(STORAGE_KEYS.INVOICES, JSON.stringify([]))
+  }
+}
+
+// small helpers
+function id(){return 'id_'+Math.random().toString(36).slice(2,9)}
+function read(key){try{return JSON.parse(localStorage.getItem(key)||'null')}catch(e){return null}}
+function write(key,val){localStorage.setItem(key, JSON.stringify(val))}
+
+// UI mounting
+const app = document.getElementById('app')
+const nav = document.getElementById('main-nav')
+const userBadge = document.getElementById('user-badge')
+
+seed()
+renderApp()
+
+function renderApp(){
+  const session = read(STORAGE_KEYS.SESSION)
+  renderHeader(session)
+  if(!session) renderAuth()
+  else renderDashboard()
+}
+
+function renderHeader(session){
+  nav.innerHTML=''
+  if(session){
+    userBadge.textContent = session.first+' '+(session.last||'')+' ('+session.role+')'
+    const buttons = [{k:'dashboard',t:'Dashboard'},{k:'products',t:'Products'},{k:'customers',t:'Customers'},{k:'invoices',t:'Raise Bill'},{k:'reports',t:'Reports'}]
+    buttons.forEach(b=>{const btn=document.createElement('button');btn.textContent=b.t;btn.onclick=()=>navigate(b.k);nav.appendChild(btn)})
+    const usersBtn=document.createElement('button');usersBtn.textContent='Users';usersBtn.onclick=()=>navigate('users');nav.appendChild(usersBtn)
+    const logoutBtn=document.createElement('button');logoutBtn.textContent='Logout';logoutBtn.onclick=logout;nav.appendChild(logoutBtn)
+    nav.style.display='flex'
+  } else {
+    userBadge.textContent='Not logged'
+    nav.style.display='none'
+  }
+}
+
+function navigate(page){
+  if(page==='dashboard') renderDashboard();
+  else if(page==='products') renderProducts();
+  else if(page==='customers') renderCustomers();
+  else if(page==='invoices') renderInvoice();
+  else if(page==='reports') renderReports();
+  else if(page==='users') renderUsers();
+}
+
+function logout(){localStorage.removeItem(STORAGE_KEYS.SESSION);renderApp()}
+
+// AUTH UI
+function renderAuth(){
+  app.innerHTML=''
+  const card = el('div',{class:'card'},
+    el('h2',{},'Welcome to Bill 24*7 — Demo'),
+    el('p',{class:'muted'},'Signup as Admin/Staff or login with existing account.'),
+    el('div',{class:'row'},
+      el('div',{class:'col'},
+         el('h3',{},'Login'),
+         el('input',{id:'login-email',placeholder:'Email'}),
+         el('input',{id:'login-phone',placeholder:'Phone (optional)'}),
+         el('button',{onclick:login},'Login')
+      ),
+      el('div',{class:'col'},
+         el('h3',{},'Signup'),
+         el('div',{},
+           el('input',{id:'su-first',placeholder:'First name'}),
+           el('input',{id:'su-last',placeholder:'Last name'}),
+           el('input',{id:'su-phone',placeholder:'Phone'}),
+           el('input',{id:'su-email',placeholder:'Email'}),
+           el('select',{id:'su-role'}, el('option',{value:'Staff'},'Staff'), el('option',{value:'Admin'},'Admin')),
+           el('input',{id:'su-doj',type:'date',value:new Date().toISOString().slice(0,10)}),
+           el('button',{onclick:signup},'Create account')
+         )
+      )
+    )
+  )
+  app.appendChild(card)
+}
+
+function login(){
+  const email = document.getElementById('login-email').value.trim()
+  const phone = document.getElementById('login-phone').value.trim()
+  const users = read(STORAGE_KEYS.USERS) || []
+  let user = users.find(u=>u.email===email || (phone && u.phone===phone))
+  if(!user){alert('No user found with that email/phone. Please signup.'); return}
+  write(STORAGE_KEYS.SESSION,user)
+  renderApp()
+}
+
+function signup(){
+  const first = document.getElementById('su-first').value.trim()
+  const last = document.getElementById('su-last').value.trim()
+  const phone = document.getElementById('su-phone').value.trim()
+  const email = document.getElementById('su-email').value.trim()
+  const role = document.getElementById('su-role').value
+  const doj = document.getElementById('su-doj').value
+  if(!first || !email){alert('First name and email required');return}
+  const users = read(STORAGE_KEYS.USERS) || []
+  const user = {id:id(),first,last,phone,email,role,doj}
+  users.push(user); write(STORAGE_KEYS.USERS,users)
+  write(STORAGE_KEYS.SESSION,user)
+  renderApp()
+}
+
+// Dashboard
+function renderDashboard(){
+  app.innerHTML=''
+  const card = el('div',{class:'card'},
+    el('h2',{},'Dashboard'),
+    el('p',{class:'muted'},'Quick actions and recent invoices'),
+    el('div',{class:'row'},
+       el('div',{class:'col'}, el('button',{onclick:()=>navigate('invoices')},'Raise new bill')),
+       el('div',{class:'col'}, el('button',{onclick:()=>navigate('products')},'Manage products'))
+    ),
+    el('hr'),
+    el('div',{}, renderRecentInvoices())
+  )
+  app.appendChild(card)
+}
+
+function renderRecentInvoices(){
+  const invoices = (read(STORAGE_KEYS.INVOICES)||[]).slice().reverse().slice(0,6)
+  if(!invoices.length) return el('p',{class:'muted'},'No invoices yet')
+  const tbl = el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Invoice'), el('th',{},'Customer'), el('th',{},'Total'), el('th',{},'Date'))))
+  const tbody = el('tbody',{}, ...invoices.map(inv=>el('tr',{}, el('td',{},inv.invoiceNo), el('td',{},inv.customerName||'Walk-in'), el('td',{},'₹'+inv.total.toFixed(2)), el('td',{},inv.date))))
+  tbl.appendChild(tbody)
+  return tbl
+}
+
+// PRODUCTS
+function renderProducts(){
+  app.innerHTML=''
+  const products = read(STORAGE_KEYS.PRODUCTS)||[]
+  const card = el('div',{class:'card'}, el('h2',{},'Products'), el('p',{class:'muted'},'Add and manage products'))
+  const form = el('div',{}, el('input',{id:'p-name',placeholder:'Product name'}), el('input',{id:'p-price',placeholder:'Price',type:'number'}), el('input',{id:'p-stock',placeholder:'Stock',type:'number'}), el('button',{onclick:addProduct},'Add product'))
+  card.appendChild(form)
+  const table = el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Name'), el('th',{},'Price'), el('th',{},'Stock'), el('th',{},'Actions'))))
+  const tbody = el('tbody',{}, ...products.map(p=>el('tr',{}, el('td',{},p.name), el('td',{},'₹'+p.price.toFixed(2)), el('td',{},p.stock), el('td',{}, el('button',{onclick:()=>editProduct(p.id)},'Edit'), ' ', el('button',{onclick:()=>deleteProduct(p.id)},'Delete')))))
+  table.appendChild(tbody)
+  card.appendChild(table)
+  app.appendChild(card)
+}
+function addProduct(){
+  const name=document.getElementById('p-name').value.trim(); const price=parseFloat(document.getElementById('p-price').value)||0; const stock=parseInt(document.getElementById('p-stock').value)||0
+  if(!name){alert('Product name required');return}
+  const products = read(STORAGE_KEYS.PRODUCTS)||[]
+  products.push({id:id(),name,price,stock})
+  write(STORAGE_KEYS.PRODUCTS,products)
+  renderProducts()
+}
+function editProduct(pid){
+  const products = read(STORAGE_KEYS.PRODUCTS)||[]; const p = products.find(x=>x.id===pid)
+  if(!p) return
+  const name = prompt('Product name',p.name); if(name===null) return
+  const price = parseFloat(prompt('Price',p.price))||0; const stock = parseInt(prompt('Stock',p.stock))||0
+  p.name=name; p.price=price; p.stock=stock; write(STORAGE_KEYS.PRODUCTS,products); renderProducts()
+}
+function deleteProduct(pid){ if(!confirm('Delete product?')) return; let products=read(STORAGE_KEYS.PRODUCTS)||[]; products=products.filter(p=>p.id!==pid); write(STORAGE_KEYS.PRODUCTS,products); renderProducts() }
+
+// CUSTOMERS
+function renderCustomers(){
+  app.innerHTML=''
+  const customers = read(STORAGE_KEYS.CUSTOMERS)||[]
+  const card = el('div',{class:'card'}, el('h2',{},'Customers'), el('p',{class:'muted'},'Add customer details (shown on invoice)'))
+  const form = el('div',{}, el('input',{id:'c-name',placeholder:'Name'}), el('input',{id:'c-phone',placeholder:'Phone'}), el('input',{id:'c-email',placeholder:'Email'}), el('input',{id:'c-dob',type:'date',placeholder:'DOB'}), el('button',{onclick:addCustomer},'Add customer'))
+  card.appendChild(form)
+  const table = el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Name'), el('th',{},'Phone'), el('th',{},'Email'), el('th',{},'Actions'))))
+  const tbody = el('tbody',{}, ...customers.map(c=>el('tr',{}, el('td',{},c.name), el('td',{},c.phone), el('td',{},c.email), el('td',{}, el('button',{onclick:()=>editCustomer(c.id)},'Edit'), ' ', el('button',{onclick:()=>deleteCustomer(c.id)},'Delete')))))
+  table.appendChild(tbody)
+  card.appendChild(table)
+  app.appendChild(card)
+}
+function addCustomer(){
+  const name=document.getElementById('c-name').value.trim(); const phone=document.getElementById('c-phone').value.trim(); const email=document.getElementById('c-email').value.trim(); const dob=document.getElementById('c-dob').value
+  if(!name){alert('Name required');return}
+  const customers = read(STORAGE_KEYS.CUSTOMERS)||[]; customers.push({id:id(),name,phone,email,dob}); write(STORAGE_KEYS.CUSTOMERS,customers); renderCustomers()
+}
+function editCustomer(cid){ const customers=read(STORAGE_KEYS.CUSTOMERS)||[]; const c=customers.find(x=>x.id===cid); if(!c) return; const name=prompt('Name',c.name); if(name===null) return; c.name=name; c.phone=prompt('Phone',c.phone); c.email=prompt('Email',c.email); write(STORAGE_KEYS.CUSTOMERS,customers); renderCustomers() }
+function deleteCustomer(cid){ if(!confirm('Delete customer?')) return; let customers=read(STORAGE_KEYS.CUSTOMERS)||[]; customers=customers.filter(x=>x.id!==cid); write(STORAGE_KEYS.CUSTOMERS,customers); renderCustomers() }
+
+// INVOICES
+function renderInvoice(){
+  app.innerHTML=''
+  const products = read(STORAGE_KEYS.PRODUCTS)||[]
+  const customers = read(STORAGE_KEYS.CUSTOMERS)||[]
+  const invoiceItems = []
+  const card = el('div',{class:'card'}, el('h2',{},'Raise Bill'))
+  const ctrl = el('div',{},
+    el('div',{}, el('label',{},'Customer:'), el('select',{id:'inv-cust'}, el('option',{value:''},'Walk-in'), ...customers.map(c=>el('option',{value:c.id},c.name+' — '+(c.phone||'')))),
+    ),
+    el('div',{}, el('label',{},'Products:'), el('select',{id:'inv-prod'}, ...products.map(p=>el('option',{value:p.id},p.name+' — ₹'+p.price))), el('input',{id:'inv-qty',type:'number',value:1,style:'width:80px;margin-left:8px;'}), el('button',{onclick:addItemToInvoice},'Add'))
+  )
+  card.appendChild(ctrl)
+  const itemsDiv = el('div',{id:'inv-items'})
+  card.appendChild(itemsDiv)
+  const saveRow = el('div',{class:'row'}, el('div',{class:'col'}, el('button',{onclick:saveInvoice},'Save Invoice')))
+  card.appendChild(saveRow)
+  app.appendChild(card)
+
+  function addItemToInvoice(){
+    const pid = document.getElementById('inv-prod').value; const qty = parseInt(document.getElementById('inv-qty').value)||1; const p = products.find(x=>x.id===pid); if(!p) return alert('Select product')
+    invoiceItems.push({id:p.id,name:p.name,price:p.price,qty})
+    renderItems()
+  }
+  function renderItems(){
+    itemsDiv.innerHTML=''
+    if(!invoiceItems.length) itemsDiv.appendChild(el('p',{class:'muted'},'No items'))
+    else{
+      const tbl=el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Item'), el('th',{},'Qty'), el('th',{},'Price'), el('th',{},'Total'), el('th',{},'Actions'))))
+      const tbody = el('tbody',{}, ...invoiceItems.map((it,idx)=>el('tr',{}, el('td',{},it.name), el('td',{},it.qty), el('td',{},'₹'+it.price.toFixed(2)), el('td',{},'₹'+(it.price*it.qty).toFixed(2)), el('td',{}, el('button',{onclick:()=>{invoiceItems.splice(idx,1);renderItems()}},'Remove')))))
+      tbl.appendChild(tbody)
+      itemsDiv.appendChild(tbl)
+      const total = invoiceItems.reduce((s,i)=>s+i.price*i.qty,0)
+      itemsDiv.appendChild(el('div',{}, el('strong',{},'Total: ₹'+total.toFixed(2))))
     }
-    function ensureAdminSaved(){
-      if(!load(SKEY.admin)){
-        save(SKEY.admin, DEFAULT_ADMIN);
-      }
-    }
-    function addNotification(text){
-      const arr = load(SKEY.notifications) || [];
-      arr.unshift({ id: uid('note'), text, ts: nowISO() });
-      save(SKEY.notifications, arr);
-    }
+  }
+  function saveInvoice(){
+    const session=read(STORAGE_KEYS.SESSION); if(!session) return alert('Login required')
+    if(!invoiceItems.length) return alert('Add items')
+    const custId = document.getElementById('inv-cust').value; const customers = read(STORAGE_KEYS.CUSTOMERS)||[]; const cust = customers.find(c=>c.id===custId)
+    const total = invoiceItems.reduce((s,i)=>s+i.price*i.qty,0)
+    const invoices = read(STORAGE_KEYS.INVOICES)||[]
+    const invoice = {id:id(),invoiceNo:'INV-'+(invoices.length+1).toString().padStart(4,'0'),items:invoiceItems,date:new Date().toISOString().slice(0,10),total,customerId:custId,customerName:cust?cust.name:'Walk-in',createdBy:session.email}
+    invoices.push(invoice); write(STORAGE_KEYS.INVOICES,invoices)
+    alert('Invoice saved: '+invoice.invoiceNo)
+    renderInvoice()
+  }
+}
 
-    // --- Initial render and routing ---
-    const root = document.getElementById('appRoot');
+// Reports
+function renderReports(){
+  app.innerHTML=''
+  const card = el('div',{class:'card'}, el('h2',{},'Reports'))
+  card.appendChild(el('div',{}, el('label',{},'From:'), el('input',{type:'date',id:'r-from',value:new Date().toISOString().slice(0,10)}), el('label',{},'To:'), el('input',{type:'date',id:'r-to',value:new Date().toISOString().slice(0,10)}), el('button',{onclick:generateReport},'Generate'), el('button',{onclick:downloadCSV},'Download CSV')))
+  card.appendChild(el('div',{id:'r-results'}))
+  app.appendChild(card)
+}
+function generateReport(){
+  const from=document.getElementById('r-from').value; const to=document.getElementById('r-to').value
+  const invoices = read(STORAGE_KEYS.INVOICES)||[]
+  const res = invoices.filter(inv=>inv.date>=from && inv.date<=to)
+  const elr = document.getElementById('r-results'); elr.innerHTML=''
+  if(!res.length) return elr.appendChild(el('p',{class:'muted'},'No invoices in range'))
+  const table = el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Invoice'), el('th',{},'Date'), el('th',{},'Customer'), el('th',{},'Total'))))
+  const tbody = el('tbody',{}, ...res.map(inv=>el('tr',{}, el('td',{},inv.invoiceNo), el('td',{},inv.date), el('td',{},inv.customerName), el('td',{},'₹'+inv.total.toFixed(2)))))
+  table.appendChild(tbody)
+  elr.appendChild(table)
+}
+function downloadCSV(){
+  const from=document.getElementById('r-from').value; const to=document.getElementById('r-to').value
+  const invoices = read(STORAGE_KEYS.INVOICES)||[]
+  const res = invoices.filter(inv=>inv.date>=from && inv.date<=to)
+  if(!res.length) return alert('No data')
+  const rows = [['Invoice','Date','Customer','Total']].concat(res.map(r=>[r.invoiceNo,r.date,r.customerName,''+r.total]))
+  const csv = rows.map(r=>r.map(cell=>'"'+String(cell).replace(/"/g,'""')+'"').join(',')).join('\n')
+  const blob = new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob)
+  const a=document.createElement('a'); a.href=url; a.download='report_'+from+'_'+to+'.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url)
+}
 
-    function renderApp(){
-      ensureAdminSaved();
-      const currentUser = load(SKEY.currentUser);
-      if(!currentUser){
-        renderLogin();
-      } else {
-        renderDashboard();
-      }
-    }
+// USERS (Admin only)
+function renderUsers(){
+  const session=read(STORAGE_KEYS.SESSION)
+  if(!session || session.role!=='Admin') return alert('Admin only')
+  app.innerHTML=''
+  const users = read(STORAGE_KEYS.USERS)||[]
+  const card = el('div',{class:'card'}, el('h2',{},'Users'), el('p',{class:'muted'},'Manage Admin and Staff accounts'))
+  const table = el('table',{}, el('thead',{}, el('tr',{}, el('th',{},'Name'), el('th',{},'Phone'), el('th',{},'Email'), el('th',{},'Role'), el('th',{},'DOJ'), el('th',{},'Actions'))))
+  const tbody = el('tbody',{}, ...users.map(u=>el('tr',{}, el('td',{},u.first+' '+(u.last||'')), el('td',{},u.phone||''), el('td',{},u.email), el('td',{},u.role), el('td',{},u.doj||''), el('td',{}, el('button',{onclick:()=>impersonate(u.id)},'Impersonate'), ' ', el('button',{onclick:()=>deleteUser(u.id)},'Delete')))))
+  table.appendChild(tbody)
+  card.appendChild(table)
+  app.appendChild(card)
+}
+function impersonate(uid){ if(!confirm('Switch session to this user?')) return; const users=read(STORAGE_KEYS.USERS)||[]; const u=users.find(x=>x.id===uid); write(STORAGE_KEYS.SESSION,u); renderApp() }
+function deleteUser(uid){ if(!confirm('Delete user?')) return; let users=read(STORAGE_KEYS.USERS)||[]; users=users.filter(x=>x.id!==uid); write(STORAGE_KEYS.USERS,users); renderUsers() }
 
-    // --- LOGIN ---
-    function renderLogin(){
-      const admin = load(SKEY.admin) || DEFAULT_ADMIN;
-      root.innerHTML = `
-        <header class="card" style="display:flex;align-items:center;justify-content:space-between">
-          <div class="brand"><div class="logo">B24</div><div>
-            <h1>Bill 24*7</h1>
-            <div class="small">Software Owned by - <strong>Karthick Subramanian</strong></div>
-          </div></div>
-          <div class="muted">Demo — login to continue</div>
-        </header>
-        <main style="display:flex;justify-content:center;padding:40px">
-          <div style="width:480px">
-            <div class="card">
-              <h2 style="margin-top:0">Admin Login</h2>
-              <div class="form-row"><input id="loginEmail" class="input" style="flex:1" placeholder="Admin email" value="${admin.email}"></div>
-              <div class="form-row"><input id="loginPass" type="password" class="input" style="flex:1" placeholder="Password" value=""></div>
-              <div style="display:flex;gap:8px;margin-top:12px">
-                <button id="btnLogin" class="btn">Login</button>
-                <button id="btnReset" class="btn secondary">Reset Password</button>
-                <button id="btnForgot" class="btn secondary">Forgot Password</button>
-              </div>
-              <div class="note" style="margin-top:10px">
-                Reset Password will set password back to <code>admin123</code>.<br>
-                Forgot Password will prompt email to show temporary password if email matches.
-              </div>
-            </div>
+// small DOM helper
+defaultExport = null
+function el(tag,attrs,...children){ const e=document.createElement(tag); if(attrs){ Object.keys(attrs).forEach(k=>{ if(k==='onclick') e.addEventListener('click',attrs[k]); else if(k==='class') e.className=attrs[k]; else if(k==='style') e.style.cssText=attrs[k]; else if(k==='id') e.id=attrs[k]; else if(k==='type') e.type=attrs[k]; else if(k==='value') e.value=attrs[k]; else e.setAttribute(k,attrs[k]) }) } children.forEach(c=>{ if(typeof c==='string' || typeof c==='number') e.appendChild(document.createTextNode(c)); else if(c) e.appendChild(c) }) return e }
 
-            <div class="card" style="margin-top:12px">
-              <h3>Quick Test Steps</h3>
-              <ol>
-                <li>Login: <strong>${admin.email}</strong> / <strong>admin123</strong></li>
-                <li>Go to Settings → Products and add a product.</li>
-                <li>Create a new bill (Billing) add product and apply Discount → Finalize bill.</li>
-                <li>Reports → click Today to see the bill.</li>
-                <li>Logout → login again — reports will be empty and notifications reset (session cleared).</li>
-              </ol>
-            </div>
-
-          </div>
-        </main>
-        <footer class="muted">Bill 24*7 — Demo build</footer>
-      `;
-
-      document.getElementById('btnLogin').onclick = () => {
-        const email = document.getElementById('loginEmail').value.trim();
-        const pass = document.getElementById('loginPass').value;
-        const savedAdmin = load(SKEY.admin);
-        if(!email || !pass){ alert('Enter email and password'); return; }
-        if(savedAdmin && savedAdmin.email === email && savedAdmin.password === pass){
-          save(SKEY.currentUser, { email, loggedAt: nowISO() });
-          // initialize empty session arrays if not present
-          save(SKEY.products, load(SKEY.products) || []);
-          save(SKEY.customers, load(SKEY.customers) || []);
-          save(SKEY.bills, load(SKEY.bills) || []);
-          save(SKEY.notifications, load(SKEY.notifications) || []);
-          save(SKEY.businessLocation, load(SKEY.businessLocation) || { location:'', city:'', state:'', pincode:'' });
-          renderApp();
-        } else {
-          alert('Invalid credentials');
-        }
-      };
-
-      document.getElementById('btnReset').onclick = () => {
-        if(confirm('Reset admin password to default (admin123)?')){
-          const admin = load(SKEY.admin) || DEFAULT_ADMIN;
-          admin.password = DEFAULT_ADMIN.password;
-          save(SKEY.admin, admin);
-          alert('Password reset to admin123');
-        }
-      };
-
-      document.getElementById('btnForgot').onclick = () => {
-        const email = document.getElementById('loginEmail').value.trim();
-        const admin = load(SKEY.admin) || DEFAULT_ADMIN;
-        if(email === admin.email){
-          const temp = 'temp' + Math.floor(Math.random()*9000+1000);
-          admin.password = temp;
-          save(SKEY.admin, admin);
-          alert('Temporary password set: ' + temp + ' — use it to login and then change password in Settings -> Admin');
-        } else {
-          alert('Email not recognized as admin email');
-        }
-      };
-    }
-
-    // --- DASHBOARD ---
-    function renderDashboard(){
-      const currentUser = load(SKEY.currentUser);
-      const admin = load(SKEY.admin) || DEFAULT_ADMIN;
-
-      root.innerHTML = `
-        <header>
-          <div class="brand">
-            <div class="logo">B24</div>
-            <div>
-              <h1>Bill 24*7</h1>
-              <div class="small">Software Owned by - <strong>Karthick Subramanian</strong></div>
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;align-items:center">
-            <button id="btnNotifToggle" class="btn secondary">Toggle Notifications</button>
-            <div class="muted small">Logged in as ${currentUser.email}</div>
-            <button id="btnLogout" class="btn danger">Logout</button>
-          </div>
-        </header>
-
-        <main>
-          <nav class="card">
-            <button data-route="dashboard">Dashboard</button>
-            <button data-route="billing">Billing</button>
-            <button data-route="reports">Reports</button>
-            <button data-route="settings">Settings</button>
-            <button data-route="notifications">Notifications</button>
-          </nav>
-
-          <div class="content" id="contentArea">
-            <!-- content injected -->
-          </div>
-        </main>
-
-        <footer class="muted">Bill 24*7 — Demo build</footer>
-      `;
-
-      // nav handlers
-      const content = document.getElementById('contentArea');
-      function navTo(route){
-        document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-        const btn = document.querySelector(`nav button[data-route="${route}"]`);
-        if(btn) btn.classList.add('active');
-        if(route === 'dashboard') renderHome(content);
-        if(route === 'billing') renderBilling(content);
-        if(route === 'reports') renderReports(content);
-        if(route === 'settings') renderSettings(content);
-        if(route === 'notifications') renderNotifications(content);
-      }
-
-      document.querySelectorAll('nav button').forEach(b=>{
-        b.onclick = ()=>navTo(b.getAttribute('data-route'));
-      });
-
-      // header buttons
-      document.getElementById('btnLogout').onclick = () => {
-        if(!confirm('Logout and clear session data? This will reset products, customers, bills and notifications for this session.')) return;
-        clearAllData();
-        // keep admin creds intact (so you can login again), but clear currentUser
-        removeKey(SKEY.currentUser);
-        renderApp();
-      };
-
-      document.getElementById('btnNotifToggle').onclick = () => {
-        const panel = document.getElementById('contentArea');
-        renderNotifications(panel);
-      };
-
-      // default view
-      navTo('dashboard');
-    }
-
-    // --- HOME / DASHBOARD ---
-    function renderHome(container){
-      const products = load(SKEY.products) || [];
-      const customers = load(SKEY.customers) || [];
-      const bills = load(SKEY.bills) || [];
-      const notifications = load(SKEY.notifications) || [];
-      const biz = load(SKEY.businessLocation) || {};
-      container.innerHTML = `
-        <div class="card">
-          <div class="flex-between">
-            <div>
-              <h2 style="margin:0">Dashboard</h2>
-              <div class="small">Quick overview</div>
-            </div>
-            <div class="flex-wrap">
-              <div class="pill">Products: ${products.length}</div>
-              <div class="pill">Customers: ${customers.length}</div>
-              <div class="pill">Bills: ${bills.length}</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <h3>Business Location</h3>
-          <div class="small">Location: ${biz.location || '-'} | ${biz.city || '-'} | ${biz.state || '-'} | ${biz.pincode || '-'}</div>
-        </div>
-
-        <div class="card">
-          <h3>Recent Notifications</h3>
-          ${notifications.length? `
-            <table><thead><tr><th>When</th><th>Event</th></tr></thead>
-            <tbody>${notifications.slice(0,6).map(n=>`<tr><td>${(new Date(n.ts)).toLocaleString()}</td><td>${escapeHtml(n.text)}</td></tr>`).join('')}</tbody></table>` :
-            `<div class="muted">No notifications recorded.</div>`}
-        </div>
-      `;
-    }
-
-    // --- Billing UI ---
-    function renderBilling(container){
-      let products = load(SKEY.products) || [];
-      let customers = load(SKEY.customers) || [];
-      let bills = load(SKEY.bills) || [];
-
-      container.innerHTML = `
-        <div class="card">
-          <h3>Create Bill</h3>
-          <div style="display:flex;gap:12px">
-            <div style="flex:1">
-              <label class="small">Select Product</label>
-              <select id="selProduct" class="input">
-                ${products.map(p=>`<option value="${p.id}" data-price="${p.price}">${escapeHtml(p.name)} — ₹${p.price}</option>`).join('')}
-              </select>
-            </div>
-            <div style="width:120px">
-              <label class="small">Quantity</label>
-              <input id="qty" type="number" min="1" value="1" class="input">
-            </div>
-            <div style="width:160px">
-              <label class="small">Choose Customer</label>
-              <select id="selCustomer" class="input">
-                <option value="">--Guest--</option>
-                ${customers.map(c=>`<option value="${c.id}">${escapeHtml(c.name)} (${escapeHtml(c.phone)})</option>`).join('')}
-              </select>
-            </div>
-            <div style="width:160px">
-              <label class="small">Discount (e.g. 10% or 50)</label>
-              <input id="discount" class="input" placeholder="10% or 50">
-            </div>
-          </div>
-
-          <div style="margin-top:12px" class="row">
-            <button id="btnAddItem" class="btn">Add to Cart</button>
-            <button id="btnClearCart" class="btn secondary">Clear Cart</button>
-          </div>
-        </div>
-
-        <div class="card">
-          <h3>Cart</h3>
-          <div id="cartArea" class="small muted">No items in cart.</div>
-          <div style="margin-top:12px" class="row">
-            <button id="btnFinalize" class="btn">Finalize Bill</button>
-            <button id="btnCancelBill" class="btn secondary">Cancel</button>
-          </div>
-        </div>
-
-        <div class="card">
-          <h3>Recent Bills</h3>
-          <div id="billsList" class="small muted"></div>
-        </div>
-      `;
-
-      let cart = [];
-
-      function refreshCartArea(){
-        const area = document.getElementById('cartArea');
-        if(cart.length === 0){
-          area.innerHTML = '<div class="muted">No items in cart.</div>';
-          return;
-        }
-        const rows = cart.map((it,idx)=>`<div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
-            <div style="flex:1">${escapeHtml(it.name)} x ${it.qty} — ₹${(it.qty*it.price).toFixed(2)}</div>
-            <div><button data-idx="${idx}" class="btn secondary">Remove</button></div>
-          </div>`).join('');
-        const subtotal = cart.reduce((s,i)=>s + i.price*i.qty,0);
-        area.innerHTML = rows + `<div style="margin-top:8px" class="flex-between"><div class="small">Subtotal</div><div class="small">₹${subtotal.toFixed(2)}</div></div>`;
-        area.querySelectorAll('button[data-idx]').forEach(b=>{
-          b.onclick = ()=>{ cart.splice(+b.dataset.idx,1); refreshCartArea(); };
-        });
-      }
-
-      document.getElementById('btnAddItem').onclick = () => {
-        const sel = document.getElementById('selProduct');
-        if(!sel.options.length){ alert('No products defined. Go to Settings → Products to add.'); return; }
-        const pid = sel.value;
-        const p = products.find(x=>x.id===pid);
-        if(!p){ alert('Product not found'); return; }
-        const qty = Math.max(1, parseInt(document.getElementById('qty').value || 1));
-        // if product already in cart, increase qty
-        const ex = cart.find(c=>c.id===p.id);
-        if(ex){ ex.qty += qty; } else cart.push({ id: p.id, name: p.name, price: Number(p.price), qty });
-        refreshCartArea();
-      };
-
-      document.getElementById('btnClearCart').onclick = () => {
-        cart = [];
-        refreshCartArea();
-      };
-
-      document.getElementById('btnCancelBill').onclick = () => {
-        if(confirm('Cancel current cart?')){ cart = []; refreshCartArea(); }
-      };
-
-      document.getElementById('btnFinalize').onclick = () => {
-        if(cart.length === 0){ alert('Cart empty'); return; }
-        // compute totals and apply discount
-        let subtotal = cart.reduce((s,i)=>s + i.price*i.qty,0);
-        const discountInput = (document.getElementById('discount').value || '').trim();
-        let discountApplied = 0;
-        if(discountInput){
-          if(discountInput.endsWith('%')){
-            const val = parseFloat(discountInput.slice(0,-1));
-            if(!isNaN(val)){
-              discountApplied = subtotal * (val/100);
-            }
-          } else {
-            const val = parseFloat(discountInput);
-            if(!isNaN(val)) discountApplied = val;
-          }
-        }
-        const total = Math.max(0, subtotal - discountApplied);
-        const customerId = document.getElementById('selCustomer').value || '';
-        const bill = {
-          id: uid('bill'),
-          ts: nowISO(),
-          items: cart.map(x=>({ id: x.id, name: x.name, qty: x.qty, price: x.price })),
-          subtotal, discountApplied, total, customerId
-        };
-        bills.unshift(bill);
-        save(SKEY.bills, bills);
-        addNotification(`New bill created (ID: ${bill.id}) total ₹${total.toFixed(2)}`);
-        alert('Bill finalized — total ₹' + total.toFixed(2));
-        cart = []; refreshCartArea();
-        document.getElementById('discount').value = '';
-        // refresh recent bills
-        renderRecentBills();
-      };
-
-      function renderRecentBills(){
-        const el = document.getElementById('billsList');
-        const storedBills = load(SKEY.bills) || [];
-        if(storedBills.length === 0){
-          el.innerHTML = '<div class="muted">No bills yet.</div>';
-          return;
-        }
-        el.innerHTML = `<table>
-          <thead><tr><th>When</th><th>Items</th><th>Total</th></tr></thead>
-          <tbody>${storedBills.slice(0,10).map(b=>`<tr><td>${(new Date(b.ts)).toLocaleString()}</td>
-            <td>${b.items.map(it=>escapeHtml(it.name)+' x '+it.qty).join(', ')}</td>
-            <td>₹${b.total.toFixed(2)}</td></tr>`).join('')}</tbody></table>`;
-      }
-
-      // init
-      refreshCartArea();
-      renderRecentBills();
-    }
-
-    // --- Reports ---
-    function renderReports(container){
-      const bills = load(SKEY.bills) || [];
-      container.innerHTML = `
-        <div class="card">
-          <h3>Reports</h3>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button id="rToday" class="btn">Today</button>
-            <button id="rYesterday" class="btn">Yesterday</button>
-            <div style="display:flex;gap:8px;align-items:center;margin-left:12px">
-              <label class="small">Custom Range</label>
-              <input id="rFrom" type="date" class="input">
-              <input id="rTo" type="date" class="input">
-              <button id="rCustom" class="btn secondary">Apply</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <h3>Results</h3>
-          <div id="reportArea" class="small muted">No report selected</div>
-        </div>
-      `;
-
-      function showReport(filtered, title){
-        const area = document.getElementById('reportArea');
-        if(filtered.length === 0){
-          area.innerHTML = `<div class="muted">No bills for ${title}.</div>`;
-          return;
-        }
-        const totalSum = filtered.reduce((s,b)=>s + (b.total || 0), 0);
-        area.innerHTML = `<div><strong>${title} — ${filtered.length} bill(s) — Total ₹${totalSum.toFixed(2)}</strong></div>
-          <table style="margin-top:8px"><thead><tr><th>When</th><th>Items</th><th>Total</th></tr></thead>
-            <tbody>${filtered.map(b=>`<tr><td>${(new Date(b.ts)).toLocaleString()}</td>
-             <td>${b.items.map(it=>escapeHtml(it.name)+' x '+it.qty).join(', ')}</td>
-             <td>₹${b.total.toFixed(2)}</td></tr>`).join('')}</tbody></table>`;
-      }
-
-      document.getElementById('rToday').onclick = () => {
-        const today = todayDateStr();
-        const filtered = bills.filter(b=>b.ts.slice(0,10) === today);
-        showReport(filtered, 'Today');
-      };
-
-      document.getElementById('rYesterday').onclick = () => {
-        const d = new Date(); d.setDate(d.getDate() - 1);
-        const y = todayDateStr(d);
-        const filtered = bills.filter(b=>b.ts.slice(0,10) === y);
-        showReport(filtered, 'Yesterday');
-      };
-
-      document.getElementById('rCustom').onclick = () => {
-        const f = document.getElementById('rFrom').value;
-        const t = document.getElementById('rTo').value;
-        if(!f || !t){ alert('Select both from and to dates'); return; }
-        const from = new Date(f + 'T00:00:00');
-        const to = new Date(t + 'T23:59:59');
-        const filtered = bills.filter(b=>{
-          const ts = new Date(b.ts);
-          return ts >= from && ts <= to;
-        });
-        showReport(filtered, `${f} → ${t}`);
-      };
-    }
-
-    // --- Notifications view ---
-    function renderNotifications(container){
-      const notes = load(SKEY.notifications) || [];
-      container.innerHTML = `
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <h3>Notifications (Changes)</h3>
-            <div>
-              <button id="btnClearNotes" class="btn secondary">Clear</button>
-              <button id="btnAddTestNote" class="btn">Add Test</button>
-            </div>
-          </div>
-          <div id="notesArea" style="margin-top:12px">${notes.length ? `
-            <table><thead><tr><th>When</th><th>Event</th></tr></thead>
-              <tbody>${notes.map(n=>`<tr><td>${(new Date(n.ts)).toLocaleString()}</td><td>${escapeHtml(n.text)}</td></tr>`).join('')}</tbody></table>
-            ` : `<div class="muted">No notifications</div>`}
-          </div>
-        </div>
-      `;
-
-      document.getElementById('btnClearNotes').onclick = () => {
-        if(!confirm('Clear all notifications?')) return;
-        save(SKEY.notifications, []);
-        addNotification('Notifications cleared by user');
-        renderNotifications(container);
-      };
-
-      document.getElementById('btnAddTestNote').onclick = () => {
-        addNotification('Test notification at ' + new Date().toLocaleString());
-        renderNotifications(container);
-      };
-    }
-
-    // --- Settings (Products, Customers, Business Location, Admin) ---
-    function renderSettings(container){
-      const products = load(SKEY.products) || [];
-      const customers = load(SKEY.customers) || [];
-      const biz = load(SKEY.businessLocation) || {};
-      const admin = load(SKEY.admin) || DEFAULT_ADMIN;
-
-      container.innerHTML = `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div class="card">
-            <h3>Products</h3>
-            <div class="form-row"><input id="pName" class="input" placeholder="Product name"></div>
-            <div class="form-row"><input id="pPrice" class="input" placeholder="Price"></div>
-            <div class="form-row"><button id="btnAddProduct" class="btn">Add Product</button></div>
-            <div id="productsArea" style="margin-top:8px">${products.length? `
-              <table><thead><tr><th>Product</th><th>Price</th><th>Action</th></tr></thead>
-              <tbody>${products.map(p=>`<tr><td>${escapeHtml(p.name)}</td><td>₹${p.price}</td><td><button data-id="${p.id}" class="btn secondary editProd">Edit</button> <button data-id="${p.id}" class="btn danger delProd">Del</button></td></tr>`).join('')}</tbody></table>` : `<div class="muted">No products yet</div>`}
-            </div>
-          </div>
-
-          <div class="card">
-            <h3>Customers</h3>
-            <div class="form-row"><input id="cName" class="input" placeholder="Customer name"></div>
-            <div class="form-row"><input id="cPhone" class="input" placeholder="Phone number"></div>
-            <div class="form-row"><input id="cEmail" class="input" placeholder="Email id"></div>
-            <div class="form-row"><input id="cLocation" class="input" placeholder="Location"></div>
-            <div class="form-row"><label class="toggle"><input id="cActive" type="checkbox"> Active</label></div>
-            <div class="form-row"><button id="btnAddCustomer" class="btn">Add Customer</button></div>
-            <div id="customersArea" style="margin-top:8px">${customers.length? `
-              <table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Active</th><th>Action</th></tr></thead>
-              <tbody>${customers.map(c=>`<tr><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.phone)}</td><td>${escapeHtml(c.email)}</td><td>${c.active? 'Yes':'No'}</td><td><button data-id="${c.id}" class="btn secondary editCust">Edit</button> <button data-id="${c.id}" class="btn danger delCust">Del</button></td></tr>`).join('')}</tbody></table>` : `<div class="muted">No customers yet</div>`}
-            </div>
-          </div>
-
-          <div class="card" style="grid-column:1/3">
-            <h3>Business Location</h3>
-            <div class="form-row"><input id="bLoc" class="input" placeholder="Location" value="${escapeHtml(biz.location || '')}"></div>
-            <div class="form-row"><input id="bCity" class="input" placeholder="City" value="${escapeHtml(biz.city || '')}"></div>
-            <div class="form-row"><input id="bState" class="input" placeholder="State" value="${escapeHtml(biz.state || '')}"></div>
-            <div class="form-row"><input id="bPin" class="input" placeholder="Pincode" value="${escapeHtml(biz.pincode || '')}"></div>
-            <div class="form-row"><button id="btnSaveBiz" class="btn">Save Location</button></div>
-          </div>
-
-          <div class="card" style="grid-column:1/3">
-            <h3>Admin Account</h3>
-            <div class="form-row"><input id="adminEmail" class="input" placeholder="Admin email" value="${escapeHtml(admin.email)}"></div>
-            <div class="form-row"><input id="adminPass" class="input" placeholder="New password" value=""></div>
-            <div class="form-row"><button id="btnSaveAdmin" class="btn">Save Admin</button></div>
-            <div class="small muted">Use Reset on Login screen to reset to default if needed.</div>
-          </div>
-        </div>
-      `;
-
-      // Products handlers
-      document.getElementById('btnAddProduct').onclick = () => {
-        const name = document.getElementById('pName').value.trim();
-        const price = parseFloat(document.getElementById('pPrice').value);
-        if(!name || isNaN(price)){ alert('Provide product name and price'); return; }
-        const arr = load(SKEY.products) || [];
-        arr.unshift({ id: uid('prod'), name, price: Number(price) });
-        save(SKEY.products, arr);
-        addNotification(`Product added: ${name} @ ₹${price}`);
-        renderSettings(container);
-      };
-
-      // customer handlers
-      document.getElementById('btnAddCustomer').onclick = () => {
-        const name = document.getElementById('cName').value.trim();
-        const phone = document.getElementById('cPhone').value.trim();
-        const email = document.getElementById('cEmail').value.trim();
-        const location = document.getElementById('cLocation').value.trim();
-        const active = document.getElementById('cActive').checked;
-        if(!name || !phone){ alert('Customer name and phone required'); return; }
-        const arr = load(SKEY.customers) || [];
-        arr.unshift({ id: uid('cust'), name, phone, email, location, active });
-        save(SKEY.customers, arr);
-        addNotification(`Customer added: ${name} (${phone})`);
-        renderSettings(container);
-      };
-
-      // Save business location
-      document.getElementById('btnSaveBiz').onclick = () => {
-        const location = document.getElementById('bLoc').value.trim();
-        const city = document.getElementById('bCity').value.trim();
-        const state = document.getElementById('bState').value.trim();
-        const pincode = document.getElementById('bPin').value.trim();
-        save(SKEY.businessLocation, { location, city, state, pincode });
-        addNotification('Business location updated');
-        renderSettings(container);
-      };
-
-      // save admin settings
-      document.getElementById('btnSaveAdmin').onclick = () => {
-        const email = document.getElementById('adminEmail').value.trim();
-        const pass = document.getElementById('adminPass').value;
-        if(!email){ alert('Admin email required'); return; }
-        const admin = load(SKEY.admin) || DEFAULT_ADMIN;
-        admin.email = email;
-        if(pass) admin.password = pass;
-        save(SKEY.admin, admin);
-        addNotification('Admin account updated');
-        alert('Admin saved. Use new credentials to login next time.');
-        renderSettings(container);
-      };
-
-      // wire up edit/delete for products & customers (delegated by re-render)
-      document.querySelectorAll('.delProd').forEach(b=>{
-        b.onclick = ()=>{
-          const id = b.dataset.id;
-          if(!confirm('Delete product?')) return;
-          const arr = (load(SKEY.products)||[]).filter(x=>x.id!==id);
-          save(SKEY.products, arr);
-          addNotification('Product removed');
-          renderSettings(container);
-        };
-      });
-      document.querySelectorAll('.editProd').forEach(b=>{
-        b.onclick = ()=>{
-          const id = b.dataset.id;
-          const arr = load(SKEY.products) || [];
-          const p = arr.find(x=>x.id===id);
-          if(!p) return;
-          const newName = prompt('Product name', p.name);
-          const newPrice = prompt('Price', p.price);
-          if(newName!==null && newPrice!==null){
-            p.name = newName;
-            p.price = Number(newPrice) || p.price;
-            save(SKEY.products, arr);
-            addNotification('Product edited: '+p.name);
-            renderSettings(container);
-          }
-        };
-      });
-
-      document.querySelectorAll('.delCust').forEach(b=>{
-        b.onclick = ()=>{
-          const id = b.dataset.id;
-          if(!confirm('Delete customer?')) return;
-          const arr = (load(SKEY.customers)||[]).filter(x=>x.id!==id);
-          save(SKEY.customers, arr);
-          addNotification('Customer removed');
-          renderSettings(container);
-        };
-      });
-      document.querySelectorAll('.editCust').forEach(b=>{
-        b.onclick = ()=>{
-          const id = b.dataset.id;
-          const arr = load(SKEY.customers) || [];
-          const p = arr.find(x=>x.id===id);
-          if(!p) return;
-          const newName = prompt('Customer name', p.name);
-          const newPhone = prompt('Phone', p.phone);
-          if(newName!==null && newPhone!==null){
-            p.name = newName;
-            p.phone = newPhone;
-            save(SKEY.customers, arr);
-            addNotification('Customer edited: '+p.name);
-            renderSettings(container);
-          }
-        };
-      });
-
-    }
-
-    // --- Helpers ---
-    function escapeHtml(s=''){ return (''+s).replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; }); }
-
-    // --- Boot ---
-    (function boot(){
-      ensureAdminSaved();
-      renderApp();
-    })();
-
-  </script>
+</script>
 </body>
 </html>
