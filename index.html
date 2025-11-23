@@ -1,3 +1,165 @@
+<!-- Insert this at the very top of your <script> in index.html -->
+<script>
+(function(){
+  // keep last 100 errors
+  const ERR_KEY = 'b24_errors';
+  function readErrors(){ try{ return JSON.parse(localStorage.getItem(ERR_KEY)||'[]') }catch(e){return[]} }
+  function writeErrors(arr){ try{ localStorage.setItem(ERR_KEY, JSON.stringify(arr.slice(-100))) }catch(e){} }
+
+  function pushError(obj){
+    const arr = readErrors();
+    arr.push(Object.assign({ts:new Date().toISOString()}, obj));
+    writeErrors(arr);
+    // visible indicator
+    const badge = document.getElementById('error-badge');
+    if(badge) badge.style.display='inline-block';
+    console.error('Captured error:', obj);
+  }
+
+  // window error
+  window.addEventListener('error', function(ev){
+    try{
+      pushError({
+        type:'error',
+        message: ev.message || (ev.error && ev.error.message) || 'Unknown error',
+        filename: ev.filename || null,
+        lineno: ev.lineno || null,
+        colno: ev.colno || null,
+        stack: ev.error && ev.error.stack ? String(ev.error.stack) : null,
+        userAgent: navigator.userAgent
+      });
+    }catch(e){}
+  });
+
+  // unhandled promise rejections
+  window.addEventListener('unhandledrejection', function(ev){
+    try{
+      const reason = ev.reason;
+      pushError({
+        type:'unhandledrejection',
+        message: (reason && reason.message) || String(reason) || 'Rejected Promise',
+        stack: (reason && reason.stack) ? String(reason.stack) : null,
+        userAgent: navigator.userAgent
+      });
+    }catch(e){}
+  });
+
+  // small UI hook in header (creates if missing)
+  function ensureBadgeUI(){
+    // header exists? poll until present
+    const tryOnce = function(){
+      const header = document.querySelector('header');
+      if(!header) return false;
+      // create badge container if missing
+      let container = header.querySelector('#error-ui-container');
+      if(!container){
+        container = document.createElement('div');
+        container.id = 'error-ui-container';
+        container.style.display='flex';
+        container.style.alignItems='center';
+        container.style.gap='8px';
+        header.appendChild(container);
+      }
+      // badge
+      if(!document.getElementById('error-badge')){
+        const b = document.createElement('button');
+        b.id = 'error-badge';
+        b.title = 'View client-side errors';
+        b.textContent = 'Errors';
+        b.style.background='linear-gradient(90deg,#e53935,#ff4d4f)';
+        b.style.color='#fff';
+        b.style.border='none';
+        b.style.padding='6px 10px';
+        b.style.borderRadius='8px';
+        b.style.cursor='pointer';
+        b.style.display = (readErrors().length ? 'inline-block' : 'none');
+        b.onclick = showErrorModal;
+        container.appendChild(b);
+      }
+      // clear button
+      if(!document.getElementById('error-clear')){
+        const c = document.createElement('button');
+        c.id = 'error-clear';
+        c.textContent = 'Clear';
+        c.style.background='transparent';
+        c.style.color='#fff';
+        c.style.border='1px solid rgba(255,255,255,0.15)';
+        c.style.padding='6px 8px';
+        c.style.borderRadius='8px';
+        c.style.cursor='pointer';
+        c.onclick = function(){
+          if(!confirm('Clear saved client-side errors?')) return;
+          localStorage.removeItem(ERR_KEY);
+          document.getElementById('error-badge').style.display='none';
+          alert('Cleared');
+        };
+        container.appendChild(c);
+      }
+      return true;
+    };
+
+    // try now, or after a short timeout (header may be created later)
+    if(!tryOnce()){
+      setTimeout(tryOnce, 300);
+      setTimeout(tryOnce, 1000);
+    }
+  }
+
+  function showErrorModal(){
+    const data = readErrors().slice().reverse();
+    // simple modal
+    let overlay = document.getElementById('error-overlay');
+    if(overlay){ overlay.remove(); } // refresh
+    overlay = document.createElement('div');
+    overlay.id = 'error-overlay';
+    overlay.style.position='fixed';
+    overlay.style.left=0; overlay.style.top=0; overlay.style.right=0; overlay.style.bottom=0;
+    overlay.style.background='rgba(0,0,0,0.5)';
+    overlay.style.zIndex=99999;
+    overlay.onclick = ()=>overlay.remove();
+
+    const box = document.createElement('div');
+    box.style.width='90%'; box.style.maxWidth='1000px'; box.style.margin='40px auto'; box.style.background='#fff'; box.style.borderRadius='10px'; box.style.padding='16px';
+    box.onclick = (e)=>e.stopPropagation();
+
+    const h = document.createElement('div');
+    h.style.display='flex'; h.style.justifyContent='space-between'; h.style.alignItems='center';
+    const title = document.createElement('h3'); title.textContent = 'Captured client-side errors'; title.style.margin='0';
+    const tools = document.createElement('div');
+    const dl = document.createElement('button'); dl.textContent='Download'; dl.style.marginRight='8px';
+    dl.onclick = function(){
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download='b24_errors_'+(new Date().toISOString().slice(0,19).replace(/[:T]/g,'_'))+'.json';
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    };
+    const close = document.createElement('button'); close.textContent='Close'; close.onclick = ()=>overlay.remove();
+    tools.appendChild(dl); tools.appendChild(close);
+    h.appendChild(title); h.appendChild(tools);
+    box.appendChild(h);
+
+    if(!data.length){
+      const p = document.createElement('p'); p.textContent='No errors captured.'; box.appendChild(p);
+    } else {
+      const pre = document.createElement('pre');
+      pre.style.maxHeight='60vh'; pre.style.overflow='auto'; pre.style.background='#f7f9fc'; pre.style.padding='12px'; pre.style.borderRadius='8px';
+      pre.textContent = data.map((e,i)=>`#${i+1} - ${e.ts} - ${e.type}\nMessage: ${e.message}\nFile: ${e.filename||''} ${e.lineno?':'+e.lineno:''}\nStack: ${e.stack||''}\nUserAgent: ${e.userAgent||''}\n---\n`).join('\\n');
+      box.appendChild(pre);
+    }
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  }
+
+  // expose for manual inspection in console
+  window.__b24_readErrors = readErrors;
+  window.__b24_clearErrors = function(){ localStorage.removeItem(ERR_KEY); document.getElementById('error-badge') && (document.getElementById('error-badge').style.display='none'); };
+
+  // init UI when DOM ready
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ensureBadgeUI);
+  else ensureBadgeUI();
+})();
+</script>
 <!doctype html>
 <html lang="en">
 <head>
