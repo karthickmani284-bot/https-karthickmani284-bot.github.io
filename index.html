@@ -228,7 +228,7 @@ function seed(){
   }
   if(!localStorage.getItem(STORAGE_KEYS.PRODUCTS)){
     const samples=[{id:id(),name:'Sample Product A',price:199,stock:50},{id:id(),name:'Sample Product B',price:49,stock:200}]
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS', JSON.stringify(samples))
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(samples))
   }
   if(!localStorage.getItem(STORAGE_KEYS.CUSTOMERS)){
     localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify([]))
